@@ -1,6 +1,7 @@
 from typing import Callable, Mapping, Tuple
 
 from .datastructures import WorkflowContext
+from .exceptions import WorkflowSetupError
 
 
 def extract_inputs(func: Callable) -> Tuple[Mapping[str, type], str]:
@@ -12,7 +13,7 @@ def extract_inputs(func: Callable) -> Tuple[Mapping[str, type], str]:
 
     # Ensure there are no positional only items
     if func_code.co_posonlyargcount:
-        raise TypeError(
+        raise WorkflowSetupError(
             "Positional only arguments are not supported.\n\n"
             f"\tdef {func_code.co_name}(...)"
         )
@@ -24,7 +25,7 @@ def extract_inputs(func: Callable) -> Tuple[Mapping[str, type], str]:
         # Extract a context instance
         if type_ is WorkflowContext:
             if context_var is not None:
-                raise TypeError(
+                raise WorkflowSetupError(
                     "WorkflowContext supplied multiple times.\n\n"
                     f"\tdef {func_code.co_name}({context_var}: WorkflowContext, {name}: WorkflowContext)"
                 )
