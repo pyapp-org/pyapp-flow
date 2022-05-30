@@ -1,6 +1,9 @@
+import logging
 from typing import Callable, Sequence, Union, Tuple, Iterable, Type
 
-from pyapp_flow import extract_inputs, WorkflowContext
+from .datastructures import WorkflowContext
+from .functions import extract_inputs
+from .exceptions import FatalError
 
 Variable = Union[str, Tuple[str, type]]
 
@@ -61,13 +64,19 @@ class Step:
 
     def __call__(self, context: WorkflowContext):
         state = context.state
-        kwargs = {name: state.get(name) for name in self.inputs}
+
+        # Prepare args from context
+        kwargs = {name: state[name] for name in self.inputs if name in state}
         if self.context_var:
             kwargs[self.context_var] = context
 
-        context.info("⚫ Step `%s`", self)
+        context.info("🔹Step `%s`", self)
         try:
             results = self.func(**kwargs)
+
+        except FatalError as ex:
+            context.error("  ⛔ Fatal error raised: %s", ex)
+            raise
 
         except Exception as ex:
             if self.ignore_exceptions and isinstance(ex, self.ignore_exceptions):
@@ -79,11 +88,11 @@ class Step:
         else:
             if self.outputs:
                 # Helper so a simple return can be used for a single result
-                if len(self.outputs) == 1:
-                    results = (results,)
-
-                for name, value in zip([name for name, _ in self.outputs], results):
+                values = (results,) if len(self.outputs) == 1 else results
+                for name, value in zip([name for name, _ in self.outputs], values):
                     context.state[name] = value
+
+            return results
 
 
 def step(
@@ -103,16 +112,25 @@ def step(
     return decorator(func) if func else decorator
 
 
-def set_var(**kwargs):
+class SetVar:
     """
     Set context variable to specified values
     """
 
-    @step(name="set var")
-    def _set_var(context: WorkflowContext):
-        context.state.update(**kwargs)
+    __slots__ = ("values",)
 
-    return _set_var
+    def __init__(self, **values):
+        self.values = values
+
+    def __call__(self, context: WorkflowContext):
+        context.info("📝 %s", self)
+        context.state.update(self.values)
+
+    def __str__(self):
+        return f"Set value(s) for {', '.join(self.values)}"
+
+
+set_var = SetVar
 
 
 class ForEach:
@@ -128,7 +146,7 @@ class ForEach:
         self._nodes = nodes
 
     def __call__(self, context: WorkflowContext):
-        context.info("➰ For `%s` in `%s`", self.target_var, self.in_var)
+        context.info("🔁 %s", self)
         try:
             iterable = context.state[self.in_var]
         except KeyError:
@@ -144,7 +162,10 @@ class ForEach:
                     node(context)
 
     def __str__(self):
-        return f"foreach {self.target_var} in {self.in_var}"
+        return f"For `{self.target_var}` in `{self.in_var}`"
+
+
+for_each = ForEach
 
 
 class CaptureErrors:
@@ -160,7 +181,7 @@ class CaptureErrors:
         self.try_all = try_all
 
     def __call__(self, context: WorkflowContext):
-        context.info("🥅 Capture errors into `%s`", self.target_var)
+        context.info("🥅 %s", self)
 
         context.state.setdefault(self.target_var, list())
         with context:
@@ -174,6 +195,9 @@ class CaptureErrors:
 
     def __str__(self):
         return f"Capture errors into `{self.target_var}`"
+
+
+capture = CaptureErrors
 
 
 class Conditional:
@@ -200,7 +224,7 @@ class Conditional:
 
     def __call__(self, context: WorkflowContext):
         condition = self.condition(context)
-        context.info("Condition is %s errors into `%s`", condition)
+        context.info("🔀 Condition is %s", condition)
 
         nodes = self._true_nodes if condition else self._false_nodes
         if nodes:
@@ -208,8 +232,38 @@ class Conditional:
                 for node in nodes:
                     node(context)
 
-    def if_false(self, *nodes: Callable):
+    def true(self, *nodes: Callable) -> "Conditional":
+        """
+        If the condition is true execute these nodes
+        """
+        self._true_nodes = nodes
+        return self
+
+    def false(self, *nodes: Callable) -> "Conditional":
         """
         If the condition is false execute these nodes
         """
         self._false_nodes = nodes
+        return self
+
+
+conditional = Conditional
+
+
+class LogMessage:
+    """
+    Print a message to log
+    """
+
+    __slots__ = ("message", "level")
+
+    def __init__(self, message: str, *, level: int = logging.INFO):
+        self.message = message
+        self.level = level
+
+    def __call__(self, context: WorkflowContext):
+        message = context.format(self.message)
+        context.log(self.level, message)
+
+
+log_message = LogMessage
