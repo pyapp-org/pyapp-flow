@@ -1,37 +1,29 @@
 """
 Application Workflow
 """
-from typing import Callable, Sequence
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import Callable
 
 from .datastructures import WorkflowContext
 from .functions import extract_inputs
-from .steps import Variable, Step, ForEach, CaptureErrors
-
-
-def step(
-    func=None,
-    *,
-    name: str = None,
-    outputs: Sequence[Variable] = None,
-) -> Step:
-    """
-    Step decorator
-    """
-
-    def decorator(func_):
-        return Step(func_, name, outputs)
-
-    return decorator(func) if func else decorator
+from .steps import Variable, step, Step, set_var, ForEach, CaptureErrors, Conditional
 
 
 class Workflow:
-    def __init__(self, *nodes: Callable, name: str = None, description: str = None):
+    """
+    A workflow definition.
+    """
+
+    __slots__ = ("_nodes", "name", "description")
+
+    def __init__(self, *nodes: Callable, name: str, description: str = None):
         self._nodes = list(nodes)
         self.name = name
         self.description = description
 
     def __call__(self, context: WorkflowContext):
-        context.info("- Executing workflow: `%s`", self.name)
+        context.info("◾ Workflow: `%s`", self.name)
         with context:
             self._execute(context)
 
@@ -40,7 +32,7 @@ class Workflow:
         Execute workflow
         """
         context = context or WorkflowContext()
-        context.info("Executing workflow: `%s`", self.name)
+        context.log.info("🟩 Workflow: `%s`", self.name)
         self._execute(context)
 
     def _execute(self, context: WorkflowContext):
@@ -95,13 +87,25 @@ class Workflow:
         return self
 
 
-def set_var(**kwargs):
+class TempWorkspaceWorkflow(Workflow):
     """
-    Set context variable to specified values
+    A workflow that provides and cleans up a temporary workspace
     """
 
-    @step(name="set var")
-    def _set_var(context: WorkflowContext):
-        context.state.update(**kwargs)
+    __slots__ = ("path_variable",)
 
-    return _set_var
+    def __init__(
+        self,
+        *nodes: Callable,
+        name: str = None,
+        description: str = None,
+        path_variable: str = "workspace"
+    ):
+        super().__init__(*nodes, name=name, description=description)
+        self.path_variable = path_variable
+
+    def _execute(self, context: WorkflowContext):
+        with TemporaryDirectory() as temp_dir:
+            context.state[self.path_variable] = Path(temp_dir)
+            context.info("Created temp workspace at: %s", temp_dir)
+            super()._execute(context)
