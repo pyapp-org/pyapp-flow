@@ -9,11 +9,11 @@ class WorkflowContext:
     Current context of the workflow
     """
 
-    __slots__ = ("_state", "log")
+    __slots__ = ("_state", "logger")
 
     def __init__(self, logger: logging.Logger = None, **variables):
         self._state = [variables]
-        self.log = logger or logging.getLogger("pyapp_flow")
+        self.logger = logger or logging.getLogger("pyapp_flow")
 
     def __enter__(self):
         self.push_state()
@@ -54,35 +54,38 @@ class WorkflowContext:
         """
         return "  " * self.depth
 
-    def _log(self, level: int, msg, *args):
-        self.log.log(level, f"{self.indent}{msg}", *args)
+    def log(self, level: int, msg: str, *args):
+        """
+        Log a message
+        """
+        self.logger.log(level, f"{self.indent}{msg}", *args)
 
     def debug(self, msg, *args):
         """
         Write indented debug message to log
         """
-        self._log(logging.DEBUG, msg, *args)
+        self.log(logging.DEBUG, msg, *args)
 
     def info(self, msg, *args):
         """
         Write indented info message to log
         """
-        self._log(logging.INFO, msg, *args)
+        self.log(logging.INFO, msg, *args)
 
     def warning(self, msg, *args):
         """
         Write indented warning message to log
         """
-        self._log(logging.WARNING, msg, *args)
+        self.log(logging.WARNING, msg, *args)
 
     def error(self, msg, *args):
         """
         Write indented error message to log
         """
-        self._log(logging.ERROR, msg, *args)
+        self.log(logging.ERROR, msg, *args)
 
-    def format_name(self, name: str) -> str:
+    def format(self, message: str) -> str:
         """
-        Format a name using context variables
+        Format a message using context variables
         """
-        return name.format(**self.state)
+        return message.format(**self.state)
