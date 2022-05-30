@@ -52,19 +52,37 @@ class WorkflowContext:
         """
         Helper that returns an indent for printing
         """
-        return "  " * (self.depth - 1)
+        return "  " * self.depth
 
     def _log(self, level: int, msg, *args):
         self.log.log(level, f"{self.indent}{msg}", *args)
 
     def debug(self, msg, *args):
+        """
+        Write indented debug message to log
+        """
         self._log(logging.DEBUG, msg, *args)
 
     def info(self, msg, *args):
+        """
+        Write indented info message to log
+        """
         self._log(logging.INFO, msg, *args)
 
     def warning(self, msg, *args):
+        """
+        Write indented warning message to log
+        """
         self._log(logging.WARNING, msg, *args)
 
     def error(self, msg, *args):
+        """
+        Write indented error message to log
+        """
         self._log(logging.ERROR, msg, *args)
+
+    def format_name(self, name: str) -> str:
+        """
+        Format a name using context variables
+        """
+        return name.format(**self.state)
