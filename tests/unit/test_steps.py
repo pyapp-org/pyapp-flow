@@ -1,6 +1,7 @@
 import pytest
 
 from pyapp_flow import steps, WorkflowContext
+from pyapp_flow.exceptions import FatalError
 
 
 def valid_step_a(var_a: str, *, var_b: int):
@@ -15,16 +16,24 @@ def valid_multiple_returns(var_a: str):
     return var_a, var_a
 
 
+def valid_raise_exception():
+    raise KeyError("Boom!")
+
+
+def valid_raise_fatal_exception():
+    raise FatalError("Boom!")
+
+
 class TestStep:
     def test_init__generates_correct_name(self):
         actual = steps.Step(valid_step_a)
 
-        assert actual.name == "valid step a"
+        assert str(actual) == "valid step a"
 
     def test_init__uses_assigned_name(self):
         actual = steps.Step(valid_step_a, name="Custom name")
 
-        assert actual.name == "Custom name"
+        assert str(actual) == "Custom name"
 
     def test_init__resolves_inputs(self):
         actual = steps.Step(valid_step_b)
@@ -46,6 +55,26 @@ class TestStep:
         assert actual == "foo:13"
         assert context.state["var_c"] == actual
 
+    def test_call__ignore_error(self):
+        context = WorkflowContext()
+        target = steps.Step(valid_raise_exception, ignore_exceptions=KeyError)
+
+        target(context)
+
+    def test_call__unhandled_error(self):
+        context = WorkflowContext()
+        target = steps.Step(valid_raise_exception, ignore_exceptions=TypeError)
+
+        with pytest.raises(KeyError):
+            target(context)
+
+    def test_call__fatal_error(self):
+        context = WorkflowContext()
+        target = steps.Step(valid_raise_fatal_exception, ignore_exceptions=TypeError)
+
+        with pytest.raises(FatalError):
+            target(context)
+
 
 class TestSetVar:
     def test_call(self):
@@ -55,6 +84,11 @@ class TestSetVar:
         target(context)
 
         assert context.state == {"var_a": "foo", "var_b": 42, "var_c": "bar"}
+
+    def test_str(self):
+        target = steps.SetVar(var_b=42, var_c="bar")
+
+        assert str(target) == "Set value(s) for var_b, var_c"
 
 
 class TestForEach:
@@ -95,4 +129,42 @@ class TestForEach:
 
 
 class TestCaptureErrors:
-    pass
+    def test_call__with_no_errors(self):
+        context = WorkflowContext()
+        target = steps.CaptureErrors("errors", steps.LogMessage("foo"))
+
+        target(context)
+
+        assert context.state["errors"] == []
+
+    def test_call__fail_on_first_error(self):
+        context = WorkflowContext()
+        target = steps.CaptureErrors(
+            "errors",
+            steps.LogMessage("foo"),
+            steps.Step(valid_raise_exception),
+            steps.Step(valid_raise_exception),
+            try_all=False,
+        )
+
+        target(context)
+
+        assert [str(e) for e in context.state["errors"]] == ["'Boom!'"]
+
+    def test_call__continue_after_error(self):
+        context = WorkflowContext()
+        target = steps.CaptureErrors(
+            "errors",
+            steps.LogMessage("foo"),
+            steps.Step(valid_raise_exception),
+            steps.Step(valid_raise_exception),
+        )
+
+        target(context)
+
+        assert [str(e) for e in context.state["errors"]] == ["'Boom!'", "'Boom!'"]
+
+    def test_str(self):
+        target = steps.CaptureErrors("errors", steps.LogMessage("foo"))
+
+        assert str(target) == "Capture errors into `errors`"

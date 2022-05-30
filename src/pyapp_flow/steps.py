@@ -59,9 +59,6 @@ class Step:
 
         self.inputs, self.context_var = extract_inputs(func)
 
-    def __str__(self):
-        return self.name
-
     def __call__(self, context: WorkflowContext):
         state = context.state
 
@@ -93,6 +90,9 @@ class Step:
                     context.state[name] = value
 
             return results
+
+    def __str__(self):
+        return self.name
 
 
 def step(
@@ -189,7 +189,7 @@ class CaptureErrors:
                 try:
                     node(context)
                 except Exception as ex:
-                    context.state[self.target_var] = ex
+                    context.state[self.target_var].append(ex)
                     if not self.try_all:
                         break
 
@@ -210,7 +210,9 @@ class Conditional:
     __slots__ = ("condition", "_true_nodes", "_false_nodes")
 
     def __init__(
-        self, condition: Union[str, Callable[[WorkflowContext], bool]], *nodes: Callable
+        self,
+        condition: Union[str, Callable[[WorkflowContext], bool]],
+        *nodes: Callable,
     ):
         if isinstance(condition, str):
             self.condition = lambda context: bool(context.state.get(condition))
