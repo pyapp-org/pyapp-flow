@@ -6,7 +6,6 @@ from typing import Callable, Union
 from .datastructures import WorkflowContext
 from .functions import extract_inputs
 from .steps import (
-    Variable,
     step,
     Step,
     set_var,

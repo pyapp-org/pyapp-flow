@@ -1,11 +1,9 @@
 import logging
-from typing import Callable, Sequence, Union, Tuple, Iterable, Type
+from typing import Callable, Sequence, Union, Iterable, Type
 
 from .datastructures import WorkflowContext
 from .functions import extract_inputs, extract_outputs
 from .exceptions import FatalError
-
-Variable = Union[str, Tuple[str, type]]
 
 
 class Step:
@@ -99,7 +97,7 @@ def step(
     func=None,
     *,
     name: str = None,
-    outputs: Sequence[Variable] = None,
+    output: Sequence[str] = None,
     ignore_exceptions: Union[Type[Exception], Sequence[Type[Exception]]] = None,
 ) -> Step:
     """
@@ -107,7 +105,7 @@ def step(
     """
 
     def decorator(func_):
-        return Step(func_, name, outputs, ignore_exceptions)
+        return Step(func_, name, output, ignore_exceptions)
 
     return decorator(func) if func else decorator
 

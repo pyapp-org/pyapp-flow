@@ -3,7 +3,7 @@ from typing import List
 import pyapp_flow as flow
 
 
-@flow.step(outputs=("arg_t",))
+@flow.step(output="arg_t")
 def add_args(arg_1: int, arg_2: int) -> int:
     return arg_1 + arg_2
 

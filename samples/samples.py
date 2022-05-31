@@ -6,7 +6,7 @@ logging.basicConfig(level=logging.DEBUG)
 import pyapp_flow as flow
 
 
-@flow.step(outputs=[("options", Sequence[str])])
+@flow.step(output="options")
 def load_options() -> Sequence["str"]:
     """
     Load options from file
