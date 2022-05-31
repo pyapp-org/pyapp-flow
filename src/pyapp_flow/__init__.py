@@ -18,6 +18,8 @@ from .steps import (
     Conditional,
     log_message,
     LogMessage,
+    append,
+    Append,
 )
 
 

@@ -170,3 +170,57 @@ class TestCaptureErrors:
         target = steps.CaptureErrors("errors", steps.LogMessage("foo"))
 
         assert str(target) == "Capture errors into `errors`"
+
+
+class TestConditional:
+    def test_call__true_branch_with_named_variable(self):
+        context = WorkflowContext(var=True)
+        target = (
+            steps.Conditional("var")
+            .true(steps.append("message", "True"))
+            .false(steps.append("message", "False"))
+        )
+
+        target(context)
+
+        assert context.state["message"] == ["True"]
+
+    def test_call__false_branch_with_named_variable(self):
+        context = WorkflowContext(var=False)
+        target = (
+            steps.Conditional("var")
+            .true(steps.append("message", "True"))
+            .false(steps.append("message", "False"))
+        )
+
+        target(context)
+
+        assert context.state["message"] == ["False"]
+
+    def test_call__true_branch_with_callable(self):
+        context = WorkflowContext()
+        target = (
+            steps.Conditional(lambda ctx: True)
+            .true(steps.append("message", "True"))
+            .false(steps.append("message", "False"))
+        )
+
+        target(context)
+
+        assert context.state["message"] == ["True"]
+
+    def test_call__false_branch_with_callable(self):
+        context = WorkflowContext()
+        target = (
+            steps.Conditional(lambda ctx: False)
+            .true(steps.append("message", "True"))
+            .false(steps.append("message", "False"))
+        )
+
+        target(context)
+
+        assert context.state["message"] == ["False"]
+
+    def test_call__invalid_conditional(self):
+        with pytest.raises(TypeError):
+            steps.Conditional(None)

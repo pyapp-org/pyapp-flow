@@ -181,13 +181,17 @@ class CaptureErrors:
     def __call__(self, context: WorkflowContext):
         context.info("🥅 %s", self)
 
-        context.state.setdefault(self.target_var, list())
+        try:
+            var = context.state[self.target_var]
+        except KeyError:
+            var = context.state[self.target_var] = []
+
         with context:
             for node in self._nodes:
                 try:
                     node(context)
                 except Exception as ex:
-                    context.state[self.target_var].append(ex)
+                    var.append(ex)
                     if not self.try_all:
                         break
 
@@ -226,11 +230,9 @@ class Conditional:
         condition = self.condition(context)
         context.info("🔀 Condition is %s", condition)
 
-        nodes = self._true_nodes if condition else self._false_nodes
-        if nodes:
-            with context:
-                for node in nodes:
-                    node(context)
+        if nodes := self._true_nodes if condition else self._false_nodes:
+            for node in nodes:
+                node(context)
 
     def true(self, *nodes: Callable) -> "Conditional":
         """
@@ -267,3 +269,25 @@ class LogMessage:
 
 
 log_message = LogMessage
+
+
+class Append:
+    """
+    Append a value to a list
+    """
+
+    __slots__ = ("target_var", "message")
+
+    def __init__(self, target_var: str, message: str):
+        self.target_var = target_var
+        self.message = message
+
+    def __call__(self, context: WorkflowContext):
+        message = context.format(self.message)
+        try:
+            context.state[self.target_var].append(message)
+        except KeyError:
+            context.state[self.target_var] = [message]
+
+
+append = Append
