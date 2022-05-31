@@ -1,4 +1,4 @@
-from typing import Callable, Mapping, Tuple
+from typing import Callable, Mapping, Tuple, Sequence, Union
 
 from .datastructures import WorkflowContext
 from .exceptions import WorkflowSetupError
@@ -35,3 +35,31 @@ def extract_inputs(func: Callable) -> Tuple[Mapping[str, type], str]:
             inputs[name] = type_
 
     return inputs, context_var
+
+
+def extract_outputs(
+    func: Callable, names: Union[str, Sequence[str]]
+) -> Sequence[Tuple[str, type]]:
+    """
+    Extract outputs from function
+    """
+    types = func.__annotations__.get("return")
+
+    # Ensure names is a list
+    if names is None:
+        names = ()
+    if isinstance(names, str):
+        names = (names,)
+
+    # Ensure types is a list
+    if types is None:
+        types = ()
+    elif getattr(types, "_name", None) == "Tuple":
+        types = types.__args__
+    else:
+        types = (types,)
+
+    if len(names) != len(types):
+        raise WorkflowSetupError("Name count does not match type count.")
+
+    return tuple(zip(names, types))

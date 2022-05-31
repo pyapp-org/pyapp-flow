@@ -39,13 +39,14 @@ class Workflow:
         with context:
             self._execute(context)
 
-    def execute(self, context: WorkflowContext = None):
+    def execute(self, context: WorkflowContext = None) -> WorkflowContext:
         """
         Execute workflow
         """
         context = context or WorkflowContext()
         context.logger.info("⏩ Workflow: `%s`", self.name)
         self._execute(context)
+        return context
 
     def _execute(self, context: WorkflowContext):
         for node in self._nodes:
@@ -58,6 +59,7 @@ class Workflow:
         self._nodes.extend(nodes)
         return self
 
+    steps = nodes
     node = nodes
 
     def set_vars(self, **kwargs) -> "Workflow":

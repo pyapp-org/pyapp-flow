@@ -1,18 +1,20 @@
+from typing import Tuple
+
 import pytest
 
 from pyapp_flow import steps, WorkflowContext
 from pyapp_flow.exceptions import FatalError
 
 
-def valid_step_a(var_a: str, *, var_b: int):
+def valid_step_a(var_a: str, *, var_b: int) -> str:
     return f"{var_a}:{var_b}"
 
 
-def valid_step_b(var_a: str, var_b: int = 42, *, ctx: WorkflowContext):
+def valid_step_b(var_a: str, var_b: int = 42, *, ctx: WorkflowContext) -> str:
     return f"{var_a}:{var_b}"
 
 
-def valid_multiple_returns(var_a: str):
+def valid_multiple_returns(var_a: str) -> Tuple[str, str]:
     return var_a, var_a
 
 
@@ -26,17 +28,17 @@ def valid_raise_fatal_exception():
 
 class TestStep:
     def test_init__generates_correct_name(self):
-        actual = steps.Step(valid_step_a)
+        actual = steps.Step(valid_step_a, output="arg_t")
 
         assert str(actual) == "valid step a"
 
     def test_init__uses_assigned_name(self):
-        actual = steps.Step(valid_step_a, name="Custom name")
+        actual = steps.Step(valid_step_a, name="Custom name", output="arg_t")
 
         assert str(actual) == "Custom name"
 
     def test_init__resolves_inputs(self):
-        actual = steps.Step(valid_step_b)
+        actual = steps.Step(valid_step_b, output="arg_t")
 
         assert actual.inputs == {"var_a": str, "var_b": int}
         assert actual.context_var == "ctx"
@@ -48,7 +50,7 @@ class TestStep:
 
     def test_call__all_vars_defined(self):
         context = WorkflowContext(var_a="foo", var_b=13)
-        target = steps.Step(valid_step_a, outputs=(("var_c", str),))
+        target = steps.Step(valid_step_a, output="var_c")
 
         actual = target(context)
 

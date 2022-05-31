@@ -2,7 +2,7 @@ import logging
 from typing import Callable, Sequence, Union, Tuple, Iterable, Type
 
 from .datastructures import WorkflowContext
-from .functions import extract_inputs
+from .functions import extract_inputs, extract_outputs
 from .exceptions import FatalError
 
 Variable = Union[str, Tuple[str, type]]
@@ -49,15 +49,15 @@ class Step:
         self,
         func: Callable,
         name: str = None,
-        outputs: Sequence[Variable] = None,
+        output: Union[str, Sequence[str]] = None,
         ignore_exceptions: Union[Type[Exception], Sequence[Type[Exception]]] = None,
     ):
         self.func = func
-        self.outputs = outputs or ()
         self.name = name or func.__name__.replace("_", " ")
         self.ignore_exceptions = ignore_exceptions
 
         self.inputs, self.context_var = extract_inputs(func)
+        self.outputs = extract_outputs(func, output)
 
     def __call__(self, context: WorkflowContext):
         state = context.state

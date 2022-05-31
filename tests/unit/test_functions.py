@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import pytest
 
 from pyapp_flow import functions, WorkflowContext
@@ -20,15 +22,15 @@ def valid_d(context: WorkflowContext, *, var_a: str, var_b: int = 42):
     pass
 
 
-def valid_e():
+def valid_e() -> int:
     pass
 
 
-def valid_f(var_a: str):
+def valid_f(var_a: str) -> str:
     pass
 
 
-def valid_g(var_a: str, *, var_b: int = 42):
+def valid_g(var_a: str, *, var_b: int = 42) -> Tuple[str, int]:
     pass
 
 
@@ -50,8 +52,23 @@ def valid_h(*, var_a: str, var_b: int = 42):
     ),
 )
 def test_extract_inputs__where_args_are_valid(func, expected):
-
     actual = functions.extract_inputs(func)
+
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
+    "func, names, expected",
+    (
+        (valid_e, "var_a", (("var_a", int),)),
+        (valid_e, ("var_a",), (("var_a", int),)),
+        (valid_f, "var_b", (("var_b", str),)),
+        (valid_f, ("var_b",), (("var_b", str),)),
+        (valid_g, ("var_a", "var_b"), (("var_a", str), ("var_b", int))),
+    ),
+)
+def test_extract_outputs__where_args_are_valid(func, names, expected):
+    actual = functions.extract_outputs(func, names)
 
     assert actual == expected
 
@@ -77,6 +94,22 @@ def invalid_c(context: WorkflowContext, other_context: WorkflowContext):
     ),
 )
 def test_extract_inputs__where_args_are_invalid(func, expected):
-
     with pytest.raises(WorkflowSetupError, match=expected):
         functions.extract_inputs(func)
+
+
+@pytest.mark.parametrize(
+    "func, names",
+    (
+        (valid_f, None),
+        (valid_f, ("a", "b")),
+        (valid_g, None),
+        (valid_g, "a"),
+        (valid_g, ("a", "b", "c")),
+    ),
+)
+def test_extract_outputs__where_args_are_invalid(func, names):
+    with pytest.raises(
+        WorkflowSetupError, match="Name count does not match type count."
+    ):
+        functions.extract_outputs(func, names)
