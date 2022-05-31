@@ -1,8 +1,6 @@
 import logging
 from typing import Sequence
 
-logging.basicConfig(level=logging.DEBUG)
-
 import pyapp_flow as flow
 
 
@@ -22,12 +20,12 @@ def process_option(current_option: str, foo: str):
     print(foo, current_option)
 
 
-@flow.step
-def flip_option(context: flow.WorkflowContext, current_option: str):
+@flow.step(output="rcurrent_object")
+def flip_option(current_option: str) -> str:
     """
     Process an option
     """
-    context.state["rcurrent_object"] = "".join(reversed(current_option))
+    return "".join(reversed(current_option))
 
 
 @flow.step
@@ -48,18 +46,19 @@ flip_workflow = flow.Workflow(name="Flip Workflow").nodes(
     print_flip_option,
 )
 
-
 process_workflow = (
     flow.Workflow(name="Do Process")
     .set_vars(foo="bar")
     .nodes(
         fail_nicely,
         load_options,
-        flow.Conditional("good").true().false(flow.log_message("{foo} is False")),
+        flow.Conditional("good").false(flow.log_message("{foo} is False")),
     )
     .foreach("current_option", "options", process_option, flip_workflow)
 )
 
 
 if __name__ == "__main__":
-    process_workflow.execute()
+    logging.basicConfig(level=logging.DEBUG)
+
+    print(process_workflow.execute().state)
