@@ -3,7 +3,7 @@ from typing import Tuple
 import pytest
 
 from pyapp_flow import steps, WorkflowContext
-from pyapp_flow.exceptions import FatalError
+from pyapp_flow.exceptions import FatalError, WorkflowRuntimeError
 
 
 def valid_step_a(var_a: str, *, var_b: int) -> str:
@@ -95,7 +95,7 @@ class TestSetVar:
 
 class TestForEach:
     def test_call__each_item_is_called(self):
-        context = WorkflowContext(var_a=["a", "b", "c"], var_b=[])
+        context = WorkflowContext(var_a=["ab", "cd", "ef"], var_b=[])
         target = steps.ForEach(
             "char", "var_a", steps.Step(lambda char, var_b: var_b.append(char))
         )
@@ -110,7 +110,7 @@ class TestForEach:
             "char", "var_a", steps.Step(lambda char, var_b: var_b.append(char))
         )
 
-        with pytest.raises(KeyError, match="not found in context"):
+        with pytest.raises(WorkflowRuntimeError, match="not found in context"):
             target(context)
 
     def test_call__in_var_is_not_iterable(self):
@@ -119,15 +119,48 @@ class TestForEach:
             "char", "var_a", steps.Step(lambda char, var_b: var_b.append(char))
         )
 
-        with pytest.raises(TypeError, match="is not iterable"):
+        with pytest.raises(WorkflowRuntimeError, match="is not iterable"):
             target(context)
 
-    def test_str(self):
+    def test_call__in_var_is_multiple_parts(self):
+        context = WorkflowContext(var_a=[("a", 1), ("b", 2), ("c", 3)], var_b=[])
+        target = steps.ForEach(
+            ("key_a", "key_b"),
+            "var_a",
+            steps.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
+        )
+
+        target(context)
+        actual = context.state["var_b"]
+
+        assert actual == [1, 2, 3]
+
+    def test_call__in_var_is_multiple_parts_not_iterable(self):
+        context = WorkflowContext(var_a=[("a", 1), 2, ("c", 3)], var_b=[])
+        target = steps.ForEach(
+            ("key_a", "key_b"),
+            "var_a",
+            steps.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
+        )
+
+        with pytest.raises(WorkflowRuntimeError, match="is not iterable"):
+            target(context)
+
+    def test_str__single_value(self):
         target = steps.ForEach(
             "char", "var_a", steps.Step(lambda char, var_b: var_b.append(char))
         )
 
-        assert str(target) == "For `char` in `var_a`"
+        assert str(target) == "For (char) in `var_a`"
+
+    def test_str__multi_value(self):
+        target = steps.ForEach(
+            ("key_a", "key_b"),
+            "var_a",
+            steps.Step(lambda char, var_b: var_b.append(char)),
+        )
+
+        assert str(target) == "For (key_a, key_b) in `var_a`"
 
 
 class TestCaptureErrors:

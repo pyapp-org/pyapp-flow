@@ -3,7 +3,7 @@ from typing import Callable, Sequence, Union, Iterable, Type
 
 from .datastructures import WorkflowContext
 from .functions import extract_inputs, extract_outputs
-from .exceptions import FatalError
+from .exceptions import FatalError, WorkflowRuntimeError
 
 
 class Step:
@@ -65,7 +65,7 @@ class Step:
         if self.context_var:
             kwargs[self.context_var] = context
 
-        context.info("🔹Step `%s`", self)
+        context.info("🔹Step `%s`", context.format(self.name))
         try:
             results = self.func(**kwargs)
 
@@ -136,10 +136,17 @@ class ForEach:
     Nested for each loop
     """
 
-    __slots__ = ("target_var", "in_var", "_nodes")
+    __slots__ = ("target_vars", "in_var", "_nodes", "_parse_values")
 
-    def __init__(self, target_var: str, in_var: str, *nodes: Callable):
-        self.target_var = target_var
+    def __init__(
+        self, target_vars: Union[str, Sequence[str]], in_var: str, *nodes: Callable
+    ):
+        if isinstance(target_vars, str):
+            self.target_vars = (target_vars,)
+            self._parse_values = self._single_value(target_vars)
+        else:
+            self.target_vars = target_vars
+            self._parse_values = self._multiple_value(target_vars)
         self.in_var = in_var
         self._nodes = nodes
 
@@ -148,19 +155,45 @@ class ForEach:
         try:
             iterable = context.state[self.in_var]
         except KeyError:
-            raise KeyError(f"Variable {self.in_var} not found in context")
+            raise WorkflowRuntimeError(f"Variable {self.in_var} not found in context")
 
         if not isinstance(iterable, Iterable):
-            raise TypeError(f"Variable {self.in_var} is not iterable")
+            raise WorkflowRuntimeError(f"Variable {self.in_var} is not iterable")
 
         for value in iterable:
+            values = self._parse_values(value)
             with context:
-                context.state[self.target_var] = value
+                context.state.update(values)
                 for node in self._nodes:
                     node(context)
 
     def __str__(self):
-        return f"For `{self.target_var}` in `{self.in_var}`"
+        return f"For ({', '.join(self.target_vars)}) in `{self.in_var}`"
+
+    def _single_value(self, target_var: str):
+        """
+        Handle single value for target
+        """
+
+        def _values(values):
+            return ((target_var, values),)
+
+        return _values
+
+    def _multiple_value(self, target_vars: Sequence[str]):
+        """
+        Handle multiple value for target
+        """
+
+        def _values(values):
+            try:
+                return zip(target_vars, values)
+            except (TypeError, ValueError):
+                raise WorkflowRuntimeError(
+                    f"Value {values} from {self.in_var} is not iterable"
+                )
+
+        return _values
 
 
 for_each = ForEach
@@ -265,7 +298,7 @@ class LogMessage:
 
     def __call__(self, context: WorkflowContext):
         message = context.format(self.message)
-        context.log(self.level, message)
+        context._log(self.level, message)
 
 
 log_message = LogMessage
