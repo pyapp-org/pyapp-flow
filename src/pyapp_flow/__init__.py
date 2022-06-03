@@ -1,7 +1,7 @@
 """
 Application Workflow
 """
-from typing import Callable, Union
+from typing import Callable, Union, Sequence
 
 from .datastructures import WorkflowContext
 from .functions import extract_inputs
@@ -61,7 +61,16 @@ class Workflow:
         return self
 
     steps = nodes
-    node = nodes
+
+    def nested(
+        self, *nodes: Callable, name: str = None, description: str = None
+    ) -> "Workflow":
+        """
+        Add nested node(s), nested nodes have their own scope
+        """
+        name = name or f"Nested {self.name}"
+        self._nodes.append(Workflow(*nodes, name=name, description=description))
+        return self
 
     def set_vars(self, **kwargs) -> "Workflow":
         """
@@ -70,9 +79,9 @@ class Workflow:
         self._nodes.append(set_var(**kwargs))
         return self
 
-    set_var = set_vars
-
-    def foreach(self, target_var: str, in_var: str, *nodes: Callable) -> "Workflow":
+    def foreach(
+        self, target_var: Union[str, Sequence[str]], in_var: str, *nodes: Callable
+    ) -> "Workflow":
         """
         Iterate through a sequence variable assigning each value to the target variable
         before executing the specified steps.
