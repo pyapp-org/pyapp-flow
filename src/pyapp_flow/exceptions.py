@@ -8,7 +8,15 @@ class WorkflowException(Exception):
 
 
 class WorkflowSetupError(WorkflowException):
-    """ """
+    """
+    Error setting up workflow
+    """
+
+
+class WorkflowRuntimeError(WorkflowException, RuntimeError):
+    """
+    Error within the workflow runtime
+    """
 
 
 class StepFailedError(WorkflowException):

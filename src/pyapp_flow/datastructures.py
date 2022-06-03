@@ -54,38 +54,48 @@ class WorkflowContext:
         """
         return "  " * self.depth
 
-    def log(self, level: int, msg: str, *args):
+    def _log(self, level: int, msg: str, *args, **kwargs):
         """
         Log a message
         """
-        self.logger.log(level, f"{self.indent}{msg}", *args)
+        self.logger.log(level, f"{self.indent}{msg}", *args, **kwargs)
 
     def debug(self, msg, *args):
         """
         Write indented debug message to log
         """
-        self.log(logging.DEBUG, msg, *args)
+        self._log(logging.DEBUG, msg, *args)
 
     def info(self, msg, *args):
         """
         Write indented info message to log
         """
-        self.log(logging.INFO, msg, *args)
+        self._log(logging.INFO, msg, *args)
 
     def warning(self, msg, *args):
         """
         Write indented warning message to log
         """
-        self.log(logging.WARNING, msg, *args)
+        self._log(logging.WARNING, msg, *args)
 
     def error(self, msg, *args):
         """
         Write indented error message to log
         """
-        self.log(logging.ERROR, msg, *args)
+        self._log(logging.ERROR, msg, *args)
+
+    def exception(self, msg, *args):
+        """
+        Write indented error message to log
+        """
+        self._log(logging.ERROR, msg, *args, exc_info=True)
 
     def format(self, message: str) -> str:
         """
         Format a message using context variables
         """
-        return message.format(**self.state)
+        try:
+            return message.format(**self.state)
+        except Exception as ex:
+            self.exception("Exception formatting message %r: %s", message, ex)
+            return message

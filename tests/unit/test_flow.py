@@ -28,6 +28,7 @@ sample_flow = (
     flow.Workflow(name="Sample Flow")
     .set_vars(messages=[], arg_1=13, arg_2=42)
     .nodes(add_args, add_message("single"), add_message("{arg_t:03d}"))
+    .nested(add_message("nested"))
     .capture_errors(
         "errors",
         raise_error(ValueError("Error A")),
@@ -36,6 +37,10 @@ sample_flow = (
         ),
         try_all=True,
     )
+    .condition(
+        (lambda ctx: ctx.state["arg_1"] < ctx.state["arg_2"]),
+        add_message("arg_1 is smaller"),
+    )
     .foreach("error", "errors", flow.log_message("{error}"), add_message("{error}"))
 )
 
@@ -43,4 +48,11 @@ sample_flow = (
 def test_workflow():
     actual = sample_flow.execute()
 
-    assert actual.state["messages"] == ["single", "055", "Error A", "Error B"]
+    assert actual.state["messages"] == [
+        "single",
+        "055",
+        "nested",
+        "arg_1 is smaller",
+        "Error A",
+        "Error B",
+    ]
