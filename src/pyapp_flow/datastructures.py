@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import deque
 from typing import Dict, Any
 
 
@@ -12,7 +13,7 @@ class WorkflowContext:
     __slots__ = ("_state", "logger")
 
     def __init__(self, logger: logging.Logger = None, **variables):
-        self._state = [variables]
+        self._state = deque((variables,))
         self.logger = logger or logging.getLogger("pyapp_flow")
 
     def __enter__(self):
@@ -31,7 +32,7 @@ class WorkflowContext:
         """
         Discard current state scope
         """
-        self._state.pop(-1)
+        self._state.pop()
 
     @property
     def state(self) -> Dict[str, Any]:
