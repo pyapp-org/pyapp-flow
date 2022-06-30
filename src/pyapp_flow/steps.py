@@ -92,6 +92,9 @@ class Step:
     def __str__(self):
         return self.name
 
+    def describe(self):
+        pass
+
 
 def step(
     func=None,
