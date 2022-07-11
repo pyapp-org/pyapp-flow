@@ -6,7 +6,7 @@ from typing import Callable, Union, Sequence, Mapping, Hashable
 from . import exceptions
 from .datastructures import WorkflowContext
 from .functions import extract_inputs
-from .steps import (
+from .nodes import (
     step,
     Step,
     set_var,
