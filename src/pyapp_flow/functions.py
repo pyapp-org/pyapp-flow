@@ -63,3 +63,11 @@ def extract_outputs(
         raise WorkflowSetupError("Name count does not match type count.")
 
     return tuple(zip(names, types))
+
+
+def call_nodes(context: WorkflowContext, nodes: Sequence[Callable]):
+    """
+    Call each node in a sequence
+    """
+    for node in nodes:
+        node(context)
