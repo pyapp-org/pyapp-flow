@@ -6,9 +6,11 @@ simplifying testing and re-use.
 
 
 ## Installation
+
 ```shell
 pip install pyapp-flow
 ```
+
 
 ## Usage
 
@@ -46,7 +48,6 @@ great_everybody = (
 
 context = flow.WorkflowContext(root_path=Path())
 great_everybody(context)
-
 ```
 
 All nodes within the workflow follow a simple interface of:
@@ -61,6 +62,7 @@ NodeFunction = Callable[[WorkflowContext], Any]
 
 The `step` decorator simplifies definition of a step by handling loading and saving 
 of state variables from the `WorkflowContext`.
+
 
 ## Reference
 
@@ -82,7 +84,7 @@ be modified (eg list/dicts).
 
 ```python
 workflow = (
-    Workflow(name=My Workflow)
+    Workflow(name="My Workflow")
     .nodes(...)
 )
 ```

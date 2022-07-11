@@ -2,19 +2,19 @@ from __future__ import annotations
 
 import logging
 from collections import deque
-from typing import Dict, Any
+from typing import Dict, Any, Type
 
 
-class WorkflowContext:
+class StateContext:
     """
-    Current context of the workflow
+    Base object that tracks nested state
     """
 
-    __slots__ = ("_state", "logger")
+    __slots__ = ("state", "_state_vector")
 
-    def __init__(self, logger: logging.Logger = None, **variables):
-        self._state = deque((variables,))
-        self.logger = logger or logging.getLogger("pyapp_flow")
+    def __init__(self, state: Dict[str, Any]):
+        self.state = state
+        self._state_vector = deque([state])
 
     def __enter__(self):
         self.push_state()
@@ -26,27 +26,34 @@ class WorkflowContext:
         """
         Clone the current state so any modification doesn't affect the outer scope
         """
-        self._state.append(dict(self.state))
+        self.state = dict(self.state)
+        self._state_vector.append(self.state)
 
     def pop_state(self):
         """
         Discard current state scope
         """
-        self._state.pop()
-
-    @property
-    def state(self) -> Dict[str, Any]:
-        """
-        Current state
-        """
-        return self._state[-1]
+        self._state_vector.pop()
+        self.state = self._state_vector[-1]
 
     @property
     def depth(self) -> int:
         """
         Current nesting level
         """
-        return len(self._state)
+        return len(self._state_vector)
+
+
+class WorkflowContext(StateContext):
+    """
+    Current context of the workflow
+    """
+
+    __slots__ = ("logger",)
+
+    def __init__(self, logger: logging.Logger = None, **variables):
+        super().__init__(variables)
+        self.logger = logger or logging.getLogger("pyapp_flow")
 
     @property
     def indent(self) -> str:
@@ -100,3 +107,16 @@ class WorkflowContext:
         except Exception as ex:
             self.exception("Exception formatting message %r: %s", message, ex)
             return message
+
+
+class DescribeContext(StateContext):
+    """
+    Context used to describe/verify a workflow.
+    """
+
+    __slots__ = ()
+
+    def __init__(self, *variables: str, **typed_variables: Type):
+        state = {var: None for var in variables}
+        state.update(typed_variables)
+        super().__init__(state)

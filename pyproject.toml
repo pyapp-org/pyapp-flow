@@ -27,6 +27,7 @@ include = ["HISTORY"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
+rich = "^12.4.4"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"
