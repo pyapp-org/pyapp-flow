@@ -96,8 +96,8 @@ class TestSetVar:
 class TestForEach:
     def test_call__each_item_is_called(self):
         context = WorkflowContext(var_a=["ab", "cd", "ef"], var_b=[])
-        target = steps.ForEach(
-            "char", "var_a", steps.Step(lambda char, var_b: var_b.append(char))
+        target = steps.ForEach("char", in_var="var_a").nodes(
+            steps.Step(lambda char, var_b: var_b.append(char))
         )
 
         target(context)
@@ -106,8 +106,8 @@ class TestForEach:
 
     def test_call__in_var_is_missing(self):
         context = WorkflowContext(var_b=[])
-        target = steps.ForEach(
-            "char", "var_a", steps.Step(lambda char, var_b: var_b.append(char))
+        target = steps.ForEach("char", in_var="var_a").nodes(
+            steps.Step(lambda char, var_b: var_b.append(char))
         )
 
         with pytest.raises(WorkflowRuntimeError, match="not found in context"):
@@ -115,8 +115,8 @@ class TestForEach:
 
     def test_call__in_var_is_not_iterable(self):
         context = WorkflowContext(var_a=None, var_b=[])
-        target = steps.ForEach(
-            "char", "var_a", steps.Step(lambda char, var_b: var_b.append(char))
+        target = steps.ForEach("char", in_var="var_a").nodes(
+            steps.Step(lambda char, var_b: var_b.append(char))
         )
 
         with pytest.raises(WorkflowRuntimeError, match="is not iterable"):
@@ -124,9 +124,18 @@ class TestForEach:
 
     def test_call__in_var_is_multiple_parts(self):
         context = WorkflowContext(var_a=[("a", 1), ("b", 2), ("c", 3)], var_b=[])
-        target = steps.ForEach(
-            ("key_a", "key_b"),
-            "var_a",
+        target = steps.ForEach(("key_a", "key_b"), in_var="var_a",).nodes(
+            steps.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
+        )
+
+        target(context)
+        actual = context.state["var_b"]
+
+        assert actual == [1, 2, 3]
+
+    def test_call__in_var_is_multiple_string(self):
+        context = WorkflowContext(var_a=[("a", 1), ("b", 2), ("c", 3)], var_b=[])
+        target = steps.ForEach("key_a, key_b", in_var="var_a",).nodes(
             steps.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
         )
 
@@ -137,9 +146,7 @@ class TestForEach:
 
     def test_call__in_var_is_multiple_parts_not_iterable(self):
         context = WorkflowContext(var_a=[("a", 1), 2, ("c", 3)], var_b=[])
-        target = steps.ForEach(
-            ("key_a", "key_b"),
-            "var_a",
+        target = steps.ForEach(("key_a", "key_b"), in_var="var_a",).nodes(
             steps.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
         )
 
@@ -147,16 +154,14 @@ class TestForEach:
             target(context)
 
     def test_str__single_value(self):
-        target = steps.ForEach(
-            "char", "var_a", steps.Step(lambda char, var_b: var_b.append(char))
+        target = steps.ForEach("char", in_var="var_a").nodes(
+            steps.Step(lambda char, var_b: var_b.append(char))
         )
 
         assert str(target) == "For (char) in `var_a`"
 
     def test_str__multi_value(self):
-        target = steps.ForEach(
-            ("key_a", "key_b"),
-            "var_a",
+        target = steps.ForEach(("key_a", "key_b"), in_var="var_a").nodes(
             steps.Step(lambda char, var_b: var_b.append(char)),
         )
 
@@ -257,3 +262,54 @@ class TestConditional:
     def test_call__invalid_conditional(self):
         with pytest.raises(TypeError):
             steps.Conditional(None)
+
+
+class TestSwitch:
+    @pytest.fixture
+    def target(self):
+        return (
+            steps.Switch("who")
+            .case(
+                "foo", steps.append("message", "foo1"), steps.append("message", "foo2")
+            )
+            .case(
+                "bar", steps.append("message", "bar1"), steps.append("message", "bar2")
+            )
+        )
+
+    def test_call__matching_branch(self, target):
+        context = WorkflowContext(who="foo")
+
+        target(context)
+
+        assert context.state["message"] == ["foo1", "foo2"]
+
+    def test_call__using_default(self, target):
+        context = WorkflowContext(who="eek")
+        target.default(steps.append("message", "default"))
+
+        target(context)
+
+        assert context.state["message"] == ["default"]
+
+    def test_call__no_matching_branch(self, target):
+        context = WorkflowContext(who="eek")
+
+        target(context)
+
+        assert "message" not in context.state
+
+    def test_call__with_lambda_condition(self):
+        context = WorkflowContext(who="foo")
+        target = steps.Switch(lambda ctx: ctx.state["who"]).case(
+            "foo", steps.append("message", "foo1")
+        )
+
+        target(context)
+
+        assert context.state["message"] == ["foo1"]
+
+    def test_call__with_invalid_condition(self):
+
+        with pytest.raises(TypeError, match="condition not context "):
+            steps.Switch(None)
