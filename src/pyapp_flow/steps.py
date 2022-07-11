@@ -1,8 +1,16 @@
 import logging
-from typing import Callable, Sequence, Union, Iterable, Type
+from typing import (
+    Callable,
+    Sequence,
+    Union,
+    Iterable,
+    Type,
+    Hashable,
+    Mapping,
+)
 
 from .datastructures import WorkflowContext
-from .functions import extract_inputs, extract_outputs
+from .functions import extract_inputs, extract_outputs, call_nodes
 from .exceptions import FatalError, WorkflowRuntimeError
 
 
@@ -30,7 +38,7 @@ class Step:
 
     :param func: Callable function or lambda
     :param name: Optional name of the step (defaults to the name of the function)
-    :param outputs:: A sequence of ``str`` or ``Tuple[str, type]`` defining the
+    :param output: A sequence of ``str`` or ``Tuple[str, type]`` defining the
         output(s) of the step function.
     """
 
@@ -136,19 +144,21 @@ class ForEach:
     Nested for each loop
     """
 
-    __slots__ = ("target_vars", "in_var", "_nodes", "_parse_values")
+    __slots__ = ("target_vars", "in_var", "_nodes", "_update_context")
 
     def __init__(
         self, target_vars: Union[str, Sequence[str]], in_var: str, *nodes: Callable
     ):
         if isinstance(target_vars, str):
-            self.target_vars = (target_vars,)
-            self._parse_values = self._single_value(target_vars)
-        else:
-            self.target_vars = target_vars
-            self._parse_values = self._multiple_value(target_vars)
+            target_vars = [var.strip() for var in target_vars.split(",")]
+        self.target_vars = target_vars
         self.in_var = in_var
-        self._nodes = nodes
+        self._nodes = list(nodes)
+
+        if len(target_vars) == 1:
+            self._update_context = self._single_value(target_vars[0])
+        else:
+            self._update_context = self._multiple_value(target_vars)
 
     def __call__(self, context: WorkflowContext):
         context.info("🔁 %s", self)
@@ -161,22 +171,28 @@ class ForEach:
             raise WorkflowRuntimeError(f"Variable {self.in_var} is not iterable")
 
         for value in iterable:
-            values = self._parse_values(value)
             with context:
-                context.state.update(values)
-                for node in self._nodes:
-                    node(context)
+                self._update_context(value, context)
+                call_nodes(context, self._nodes)
 
     def __str__(self):
         return f"For ({', '.join(self.target_vars)}) in `{self.in_var}`"
 
-    def _single_value(self, target_var: str):
+    def nodes(self, *nodes: Callable) -> "ForEach":
+        """
+        Add nodes to call as part of the foreach block
+        """
+        self._nodes.extend(nodes)
+        return self
+
+    @staticmethod
+    def _single_value(target_var: str):
         """
         Handle single value for target
         """
 
-        def _values(values):
-            return ((target_var, values),)
+        def _values(value, context: WorkflowContext):
+            context.state[target_var] = value
 
         return _values
 
@@ -185,13 +201,15 @@ class ForEach:
         Handle multiple value for target
         """
 
-        def _values(values):
+        def _values(values, context: WorkflowContext):
             try:
-                return zip(target_vars, values)
+                pairs = zip(target_vars, values)
             except (TypeError, ValueError):
                 raise WorkflowRuntimeError(
                     f"Value {values} from {self.in_var} is not iterable"
                 )
+
+            context.state.update(pairs)
 
         return _values
 
@@ -239,7 +257,8 @@ class Conditional:
     """
     Branch a workflow based on a condition.
 
-    A condition can be either a boolean based context variable or a callable that accepts a workflow context.
+    A condition can be either a context variable that can be evaluated as a
+    boolean (using Python rules) or a callable that accepts a workflow context.
     """
 
     __slots__ = ("condition", "_true_nodes", "_false_nodes")
@@ -264,8 +283,7 @@ class Conditional:
         context.info("🔀 Condition is %s", condition)
 
         if nodes := self._true_nodes if condition else self._false_nodes:
-            for node in nodes:
-                node(context)
+            call_nodes(context, nodes)
 
     def true(self, *nodes: Callable) -> "Conditional":
         """
@@ -282,7 +300,67 @@ class Conditional:
         return self
 
 
-conditional = Conditional
+conditional = If = Conditional
+
+
+class Switch:
+    """
+    Branch a workflow into one of multiple subprocesses
+
+    A condition can be either a context variable that provides a hashable object
+    or a callable that accepts a workflow context and returns a hashable object.
+    """
+
+    __slots__ = ("condition", "_options", "_default")
+
+    def __init__(
+        self,
+        condition: Union[str, Callable[[WorkflowContext], Hashable]],
+        options: Mapping[Hashable, Sequence[Callable]] = None,
+        *,
+        default: Sequence[Callable] = None,
+    ):
+        if isinstance(condition, str):
+            self.condition = lambda context: context.state.get(condition)
+        elif callable(condition):
+            self.condition = condition
+        else:
+            raise TypeError("condition not context variable name or callable")
+
+        self._options = options or {}
+        self._default = default
+
+    def __call__(self, context: WorkflowContext):
+        value = self.condition(context)
+        branch = self._options.get(value, None)
+        if branch is None:
+            if self._default:
+                context.info("🔀 Switch %s -> default", value)
+                branch = self._default
+            else:
+                context.info("🔀 Switch %s not matched", value)
+                return
+        else:
+            context.info("🔀 Switch %s matched branch", value)
+
+        call_nodes(context, branch)
+
+    def case(self, key: Hashable, *nodes: Callable) -> "Switch":
+        """
+        Key to match in_var and execute this branch of nodes
+        """
+        self._options[key] = nodes
+        return self
+
+    def default(self, *nodes: Callable) -> "Switch":
+        """
+        Default to match if no option matches
+        """
+        self._default = nodes
+        return self
+
+
+switch = Switch
 
 
 class LogMessage:
@@ -298,7 +376,7 @@ class LogMessage:
 
     def __call__(self, context: WorkflowContext):
         message = context.format(self.message)
-        context._log(self.level, message)
+        context.log(self.level, message)
 
 
 log_message = LogMessage
