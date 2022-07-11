@@ -52,9 +52,14 @@ process_workflow = (
     .nodes(
         fail_nicely,
         load_options,
-        flow.Conditional("good").false(flow.log_message("{foo} is False")),
+        flow.Conditional("good").false(
+            flow.log_message("{foo} is False"),
+        ),
+        flow.ForEach("current_option", in_var="options").loop(
+            process_option,
+            flip_workflow,
+        ),
     )
-    .foreach("current_option", "options", process_option, flip_workflow)
 )
 
 
