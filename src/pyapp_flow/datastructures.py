@@ -55,7 +55,7 @@ class WorkflowContext:
         """
         return "  " * self.depth
 
-    def _log(self, level: int, msg: str, *args, **kwargs):
+    def log(self, level: int, msg: str, *args, **kwargs):
         """
         Log a message
         """
@@ -65,31 +65,31 @@ class WorkflowContext:
         """
         Write indented debug message to log
         """
-        self._log(logging.DEBUG, msg, *args)
+        self.log(logging.DEBUG, msg, *args)
 
     def info(self, msg, *args):
         """
         Write indented info message to log
         """
-        self._log(logging.INFO, msg, *args)
+        self.log(logging.INFO, msg, *args)
 
     def warning(self, msg, *args):
         """
         Write indented warning message to log
         """
-        self._log(logging.WARNING, msg, *args)
+        self.log(logging.WARNING, msg, *args)
 
     def error(self, msg, *args):
         """
         Write indented error message to log
         """
-        self._log(logging.ERROR, msg, *args)
+        self.log(logging.ERROR, msg, *args)
 
     def exception(self, msg, *args):
         """
         Write indented error message to log
         """
-        self._log(logging.ERROR, msg, *args, exc_info=True)
+        self.log(logging.ERROR, msg, *args, exc_info=True)
 
     def format(self, message: str) -> str:
         """
