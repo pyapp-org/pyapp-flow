@@ -139,82 +139,26 @@ class SetVar:
 set_var = SetVar
 
 
-class ForEach:
+class Append:
     """
-    Nested for each loop
+    Append a value to a list
     """
 
-    __slots__ = ("target_vars", "in_var", "_nodes", "_update_context")
+    __slots__ = ("target_var", "message")
 
-    def __init__(
-        self, target_vars: Union[str, Sequence[str]], in_var: str, *nodes: Callable
-    ):
-        if isinstance(target_vars, str):
-            target_vars = [var.strip() for var in target_vars.split(",")]
-        self.target_vars = target_vars
-        self.in_var = in_var
-        self._nodes = list(nodes)
-
-        if len(target_vars) == 1:
-            self._update_context = self._single_value(target_vars[0])
-        else:
-            self._update_context = self._multiple_value(target_vars)
+    def __init__(self, target_var: str, message: str):
+        self.target_var = target_var
+        self.message = message
 
     def __call__(self, context: WorkflowContext):
-        context.info("🔁 %s", self)
+        message = context.format(self.message)
         try:
-            iterable = context.state[self.in_var]
+            context.state[self.target_var].append(message)
         except KeyError:
-            raise WorkflowRuntimeError(f"Variable {self.in_var} not found in context")
-
-        if not isinstance(iterable, Iterable):
-            raise WorkflowRuntimeError(f"Variable {self.in_var} is not iterable")
-
-        for value in iterable:
-            with context:
-                self._update_context(value, context)
-                call_nodes(context, self._nodes)
-
-    def __str__(self):
-        return f"For ({', '.join(self.target_vars)}) in `{self.in_var}`"
-
-    def nodes(self, *nodes: Callable) -> "ForEach":
-        """
-        Add nodes to call as part of the foreach block
-        """
-        self._nodes.extend(nodes)
-        return self
-
-    @staticmethod
-    def _single_value(target_var: str):
-        """
-        Handle single value for target
-        """
-
-        def _values(value, context: WorkflowContext):
-            context.state[target_var] = value
-
-        return _values
-
-    def _multiple_value(self, target_vars: Sequence[str]):
-        """
-        Handle multiple value for target
-        """
-
-        def _values(values, context: WorkflowContext):
-            try:
-                pairs = zip(target_vars, values)
-            except (TypeError, ValueError):
-                raise WorkflowRuntimeError(
-                    f"Value {values} from {self.in_var} is not iterable"
-                )
-
-            context.state.update(pairs)
-
-        return _values
+            context.state[self.target_var] = [message]
 
 
-for_each = ForEach
+append = Append
 
 
 class CaptureErrors:
@@ -382,23 +326,79 @@ class LogMessage:
 log_message = LogMessage
 
 
-class Append:
+class ForEach:
     """
-    Append a value to a list
+    Nested for each loop
     """
 
-    __slots__ = ("target_var", "message")
+    __slots__ = ("target_vars", "in_var", "_nodes", "_update_context")
 
-    def __init__(self, target_var: str, message: str):
-        self.target_var = target_var
-        self.message = message
+    def __init__(
+        self, target_vars: Union[str, Sequence[str]], in_var: str, *nodes: Callable
+    ):
+        if isinstance(target_vars, str):
+            target_vars = [var.strip() for var in target_vars.split(",")]
+        self.target_vars = target_vars
+        self.in_var = in_var
+        self._nodes = list(nodes)
+
+        if len(target_vars) == 1:
+            self._update_context = self._single_value(target_vars[0])
+        else:
+            self._update_context = self._multiple_value(target_vars)
 
     def __call__(self, context: WorkflowContext):
-        message = context.format(self.message)
+        context.info("🔁 %s", self)
         try:
-            context.state[self.target_var].append(message)
+            iterable = context.state[self.in_var]
         except KeyError:
-            context.state[self.target_var] = [message]
+            raise WorkflowRuntimeError(f"Variable {self.in_var} not found in context")
+
+        if not isinstance(iterable, Iterable):
+            raise WorkflowRuntimeError(f"Variable {self.in_var} is not iterable")
+
+        for value in iterable:
+            with context:
+                self._update_context(value, context)
+                call_nodes(context, self._nodes)
+
+    def __str__(self):
+        return f"For ({', '.join(self.target_vars)}) in `{self.in_var}`"
+
+    def loop(self, *nodes: Callable) -> "ForEach":
+        """
+        Add nodes to call as part of the foreach block
+        """
+        self._nodes.extend(nodes)
+        return self
+
+    @staticmethod
+    def _single_value(target_var: str):
+        """
+        Handle single value for target
+        """
+
+        def _values(value, context: WorkflowContext):
+            context.state[target_var] = value
+
+        return _values
+
+    def _multiple_value(self, target_vars: Sequence[str]):
+        """
+        Handle multiple value for target
+        """
+
+        def _values(values, context: WorkflowContext):
+            try:
+                pairs = zip(target_vars, values)
+            except (TypeError, ValueError):
+                raise WorkflowRuntimeError(
+                    f"Value {values} from {self.in_var} is not iterable"
+                )
+
+            context.state.update(pairs)
+
+        return _values
 
 
-append = Append
+for_each = ForEach
