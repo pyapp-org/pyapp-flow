@@ -27,7 +27,7 @@ def load_names(root_path: Path) -> Sequence[str]:
     Read a sequence of names from a file
     """
     with (root_path / "names.txt").open() as f_in:
-        return f_in.readlines()
+        return [name.strip() for name in f_in.readlines()]
 
 
 @flow.step(name="Say hello")
