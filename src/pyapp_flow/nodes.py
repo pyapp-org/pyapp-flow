@@ -157,6 +157,9 @@ class Append:
         except KeyError:
             context.state[self.target_var] = [message]
 
+    def __str__(self):
+        return f"Append {self.message} to {self.target_var}"
+
 
 append = Append
 
@@ -229,6 +232,9 @@ class Conditional:
         if nodes := self._true_nodes if condition else self._false_nodes:
             call_nodes(context, nodes)
 
+    def __str__(self):
+        return f"Conditional branch"
+
     def true(self, *nodes: Callable) -> "Conditional":
         """
         If the condition is true execute these nodes
@@ -289,6 +295,9 @@ class Switch:
 
         call_nodes(context, branch)
 
+    def __str__(self):
+        return f"Switch into {', '.join(self._options)}"
+
     def case(self, key: Hashable, *nodes: Callable) -> "Switch":
         """
         Key to match in_var and execute this branch of nodes
@@ -321,6 +330,9 @@ class LogMessage:
     def __call__(self, context: WorkflowContext):
         message = context.format(self.message)
         context.log(self.level, message)
+
+    def __str__(self):
+        return f"Log Message {self.message}"
 
 
 log_message = LogMessage

@@ -44,6 +44,9 @@ class Workflow:
         with context:
             self._execute(context)
 
+    def __str__(self):
+        return self.name
+
     def execute(self, context: WorkflowContext = None) -> WorkflowContext:
         """
         Execute workflow
