@@ -4,7 +4,7 @@ Application Workflow
 from typing import Callable, Union, Sequence, Mapping, Hashable
 
 from . import exceptions
-from .datastructures import WorkflowContext
+from .datastructures import WorkflowContext, DescribeContext
 from .functions import extract_inputs
 from .nodes import (
     step,
@@ -131,3 +131,9 @@ class Workflow:
         """
         self._nodes.append(CaptureErrors(target_var, *nodes, try_all=try_all))
         return self
+
+    def describe(self, context: DescribeContext):
+        yield self, ()
+        with context:
+            for node in self._nodes:
+                yield from node.describe(context)

@@ -7,9 +7,10 @@ from typing import (
     Type,
     Hashable,
     Mapping,
+    List,
 )
 
-from .datastructures import WorkflowContext
+from .datastructures import WorkflowContext, DescribeContext
 from .functions import extract_inputs, extract_outputs, call_nodes
 from .exceptions import FatalError, WorkflowRuntimeError
 
@@ -100,6 +101,14 @@ class Step:
     def __str__(self):
         return self.name
 
+    def describe(self, context: DescribeContext):
+        """
+        Describe this node
+        """
+        context.requires(self, self.inputs)
+        context.outputs(dict(self.outputs))
+        yield self, None
+
 
 def step(
     func=None,
@@ -135,6 +144,13 @@ class SetVar:
     def __str__(self):
         return f"Set value(s) for {', '.join(self.values)}"
 
+    def describe(self, context: DescribeContext):
+        """
+        Describe this node
+        """
+        context.outputs(self.values)
+        yield self, None
+
 
 set_var = SetVar
 
@@ -159,6 +175,13 @@ class Append:
 
     def __str__(self):
         return f"Append {self.message} to {self.target_var}"
+
+    def describe(self, context: DescribeContext):
+        """
+        Describe this node
+        """
+        context.outputs({self.target_var: List[str]})
+        yield self, None
 
 
 append = Append
@@ -195,6 +218,15 @@ class CaptureErrors:
 
     def __str__(self):
         return f"Capture errors into `{self.target_var}`"
+
+    def describe(self, context: DescribeContext):
+        """
+        Describe this node
+        """
+        context.outputs({self.target_var: List[Exception]})
+        yield self, self._nodes
+        for node in self._nodes:
+            yield from node.describe(context)
 
 
 capture = CaptureErrors
@@ -248,6 +280,16 @@ class Conditional:
         """
         self._false_nodes = nodes
         return self
+
+    def describe(self, context: DescribeContext):
+        """
+        Describe this node
+        """
+        yield self, {True: self._true_nodes, False: self._false_nodes}
+        for node in self._true_nodes:
+            yield from node.describe(context)
+        for node in self._false_nodes:
+            yield from node.describe(context)
 
 
 conditional = If = Conditional
@@ -312,6 +354,22 @@ class Switch:
         self._default = nodes
         return self
 
+    def describe(self, context: DescribeContext):
+        """
+        Describe this node
+        """
+        branches = dict(self._options)
+        if self._default:
+            branches[None] = self._default
+        yield self, branches
+
+        for nodes in self._options.values():
+            for node in nodes:
+                yield from node.describe(context)
+        if self._default:
+            for node in self._default:
+                yield from node.describe(context)
+
 
 switch = Switch
 
@@ -333,6 +391,12 @@ class LogMessage:
 
     def __str__(self):
         return f"Log Message {self.message}"
+
+    def describe(self, context: DescribeContext):
+        """
+        Describe this node
+        """
+        yield self, None
 
 
 log_message = LogMessage
@@ -411,6 +475,16 @@ class ForEach:
             context.state.update(pairs)
 
         return _values
+
+    def describe(self, context: DescribeContext):
+        """
+        Describe this node
+        """
+        context.requires(self, (self.in_var,))
+        context.outputs(self.target_vars)
+        yield self, self._nodes
+        for node in self._nodes:
+            yield from node.describe(context)
 
 
 for_each = ForEach

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import deque
-from typing import Dict, Any, Type
+from typing import Dict, Any, Type, Sequence, Mapping, Union
 
 
 class StateContext:
@@ -51,7 +51,7 @@ class WorkflowContext(StateContext):
 
     __slots__ = ("logger",)
 
-    def __init__(self, logger: logging.Logger = None, **variables):
+    def __init__(self, logger: logging.Logger = None, **variables: Any):
         super().__init__(variables)
         self.logger = logger or logging.getLogger("pyapp_flow")
 
@@ -116,7 +116,26 @@ class DescribeContext(StateContext):
 
     __slots__ = ()
 
-    def __init__(self, *variables: str, **typed_variables: Type):
-        state = {var: None for var in variables}
-        state.update(typed_variables)
-        super().__init__(state)
+    def __init__(self, **variables: Type):
+        super().__init__({})
+        self.outputs(variables)
+
+    def requires(self, node, variables: Union[Sequence[str], Mapping[str, Type]]):
+        """
+        Check if the required variables are available
+        """
+        if missing_vars := [var for var in variables if var not in self.state]:
+            raise AttributeError(
+                f"{node} - {', '.join(missing_vars)} not found in context"
+            )
+
+        # if self.state[var] is not type_:
+        #     print(f"Types don't match for {var}")
+
+    def outputs(self, variables: Union[Sequence[str], Mapping[str, Type]]):
+        """
+        Add outputs of a node into the context
+        """
+        if not isinstance(variables, Mapping):
+            variables = {var: None for var in variables}
+        self.state.update(variables)

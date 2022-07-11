@@ -2,6 +2,7 @@ import logging
 from typing import Sequence
 
 import pyapp_flow as flow
+from pyapp_flow.checks import validate_workflow
 
 
 @flow.step(output="options")
@@ -41,6 +42,11 @@ def fail_nicely():
     raise ValueError("Eek!")
 
 
+@flow.step
+def unknown_vars(invalid_var_a: str, invalid_var_b: int):
+    pass
+
+
 flip_workflow = flow.Workflow(name="Flip Workflow").nodes(
     flip_option,
     print_flip_option,
@@ -56,8 +62,7 @@ process_workflow = (
             flow.log_message("{foo} is False"),
         ),
         flow.ForEach("current_option", in_var="options").loop(
-            process_option,
-            flip_workflow,
+            process_option, flip_workflow, unknown_vars
         ),
     )
 )
@@ -66,4 +71,5 @@ process_workflow = (
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
-    print(process_workflow.execute().state)
+    validate_workflow(process_workflow)
+    # print(process_workflow.execute().state)
