@@ -1,7 +1,7 @@
 """
 Application Workflow
 """
-from typing import Callable, Union, Sequence
+from typing import Callable, Union, Sequence, Mapping, Hashable
 
 from .datastructures import WorkflowContext
 from .functions import extract_inputs
@@ -16,6 +16,9 @@ from .steps import (
     CaptureErrors,
     conditional,
     Conditional,
+    If,
+    switch,
+    Switch,
     log_message,
     LogMessage,
     append,
@@ -96,6 +99,19 @@ class Workflow:
         Conditional pipeline, only supports true branch
         """
         self._nodes.append(Conditional(condition, *nodes))
+        return self
+
+    def switch(
+        self,
+        in_var: str,
+        options: Mapping[Hashable, Sequence[Callable]],
+        *,
+        default: Callable = None,
+    ):
+        """
+        Switch pipeline based on a context variable
+        """
+        self._nodes.append(Switch(in_var, options, default=default))
         return self
 
     def capture_errors(
