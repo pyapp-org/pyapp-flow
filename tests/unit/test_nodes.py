@@ -2,7 +2,7 @@ from typing import Tuple
 
 import pytest
 
-from pyapp_flow import steps, WorkflowContext
+from pyapp_flow import nodes, WorkflowContext
 from pyapp_flow.exceptions import FatalError, WorkflowRuntimeError
 
 
@@ -28,29 +28,29 @@ def valid_raise_fatal_exception():
 
 class TestStep:
     def test_init__generates_correct_name(self):
-        actual = steps.Step(valid_step_a, output="arg_t")
+        actual = nodes.Step(valid_step_a, output="arg_t")
 
         assert str(actual) == "valid step a"
 
     def test_init__uses_assigned_name(self):
-        actual = steps.Step(valid_step_a, name="Custom name", output="arg_t")
+        actual = nodes.Step(valid_step_a, name="Custom name", output="arg_t")
 
         assert str(actual) == "Custom name"
 
     def test_init__resolves_inputs(self):
-        actual = steps.Step(valid_step_b, output="arg_t")
+        actual = nodes.Step(valid_step_b, output="arg_t")
 
         assert actual.inputs == {"var_a": str, "var_b": int}
         assert actual.context_var == "ctx"
 
     def test_init__accepts_lambda(self):
-        actual = steps.Step(lambda var_a: f"{var_a}!", name="foo")
+        actual = nodes.Step(lambda var_a: f"{var_a}!", name="foo")
 
         assert actual.inputs == {"var_a": None}
 
     def test_call__all_vars_defined(self):
         context = WorkflowContext(var_a="foo", var_b=13)
-        target = steps.Step(valid_step_a, output="var_c")
+        target = nodes.Step(valid_step_a, output="var_c")
 
         actual = target(context)
 
@@ -59,20 +59,20 @@ class TestStep:
 
     def test_call__ignore_error(self):
         context = WorkflowContext()
-        target = steps.Step(valid_raise_exception, ignore_exceptions=KeyError)
+        target = nodes.Step(valid_raise_exception, ignore_exceptions=KeyError)
 
         target(context)
 
     def test_call__unhandled_error(self):
         context = WorkflowContext()
-        target = steps.Step(valid_raise_exception, ignore_exceptions=TypeError)
+        target = nodes.Step(valid_raise_exception, ignore_exceptions=TypeError)
 
         with pytest.raises(KeyError):
             target(context)
 
     def test_call__fatal_error(self):
         context = WorkflowContext()
-        target = steps.Step(valid_raise_fatal_exception, ignore_exceptions=TypeError)
+        target = nodes.Step(valid_raise_fatal_exception, ignore_exceptions=TypeError)
 
         with pytest.raises(FatalError):
             target(context)
@@ -81,14 +81,14 @@ class TestStep:
 class TestSetVar:
     def test_call(self):
         context = WorkflowContext(var_a="foo", var_b=13)
-        target = steps.SetVar(var_b=42, var_c="bar")
+        target = nodes.SetVar(var_b=42, var_c="bar")
 
         target(context)
 
         assert context.state == {"var_a": "foo", "var_b": 42, "var_c": "bar"}
 
     def test_str(self):
-        target = steps.SetVar(var_b=42, var_c="bar")
+        target = nodes.SetVar(var_b=42, var_c="bar")
 
         assert str(target) == "Set value(s) for var_b, var_c"
 
@@ -96,8 +96,8 @@ class TestSetVar:
 class TestForEach:
     def test_call__each_item_is_called(self):
         context = WorkflowContext(var_a=["ab", "cd", "ef"], var_b=[])
-        target = steps.ForEach(
-            "char", "var_a", steps.Step(lambda char, var_b: var_b.append(char))
+        target = nodes.ForEach("char", in_var="var_a").loop(
+            nodes.Step(lambda char, var_b: var_b.append(char))
         )
 
         target(context)
@@ -106,8 +106,8 @@ class TestForEach:
 
     def test_call__in_var_is_missing(self):
         context = WorkflowContext(var_b=[])
-        target = steps.ForEach(
-            "char", "var_a", steps.Step(lambda char, var_b: var_b.append(char))
+        target = nodes.ForEach("char", in_var="var_a").loop(
+            nodes.Step(lambda char, var_b: var_b.append(char))
         )
 
         with pytest.raises(WorkflowRuntimeError, match="not found in context"):
@@ -115,8 +115,8 @@ class TestForEach:
 
     def test_call__in_var_is_not_iterable(self):
         context = WorkflowContext(var_a=None, var_b=[])
-        target = steps.ForEach(
-            "char", "var_a", steps.Step(lambda char, var_b: var_b.append(char))
+        target = nodes.ForEach("char", in_var="var_a").loop(
+            nodes.Step(lambda char, var_b: var_b.append(char))
         )
 
         with pytest.raises(WorkflowRuntimeError, match="is not iterable"):
@@ -124,10 +124,19 @@ class TestForEach:
 
     def test_call__in_var_is_multiple_parts(self):
         context = WorkflowContext(var_a=[("a", 1), ("b", 2), ("c", 3)], var_b=[])
-        target = steps.ForEach(
-            ("key_a", "key_b"),
-            "var_a",
-            steps.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
+        target = nodes.ForEach(("key_a", "key_b"), in_var="var_a",).loop(
+            nodes.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
+        )
+
+        target(context)
+        actual = context.state["var_b"]
+
+        assert actual == [1, 2, 3]
+
+    def test_call__in_var_is_multiple_string(self):
+        context = WorkflowContext(var_a=[("a", 1), ("b", 2), ("c", 3)], var_b=[])
+        target = nodes.ForEach("key_a, key_b", in_var="var_a",).loop(
+            nodes.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
         )
 
         target(context)
@@ -137,27 +146,23 @@ class TestForEach:
 
     def test_call__in_var_is_multiple_parts_not_iterable(self):
         context = WorkflowContext(var_a=[("a", 1), 2, ("c", 3)], var_b=[])
-        target = steps.ForEach(
-            ("key_a", "key_b"),
-            "var_a",
-            steps.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
+        target = nodes.ForEach(("key_a", "key_b"), in_var="var_a",).loop(
+            nodes.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
         )
 
         with pytest.raises(WorkflowRuntimeError, match="is not iterable"):
             target(context)
 
     def test_str__single_value(self):
-        target = steps.ForEach(
-            "char", "var_a", steps.Step(lambda char, var_b: var_b.append(char))
+        target = nodes.ForEach("char", in_var="var_a").loop(
+            nodes.Step(lambda char, var_b: var_b.append(char))
         )
 
         assert str(target) == "For (char) in `var_a`"
 
     def test_str__multi_value(self):
-        target = steps.ForEach(
-            ("key_a", "key_b"),
-            "var_a",
-            steps.Step(lambda char, var_b: var_b.append(char)),
+        target = nodes.ForEach(("key_a", "key_b"), in_var="var_a").loop(
+            nodes.Step(lambda char, var_b: var_b.append(char)),
         )
 
         assert str(target) == "For (key_a, key_b) in `var_a`"
@@ -166,7 +171,7 @@ class TestForEach:
 class TestCaptureErrors:
     def test_call__with_no_errors(self):
         context = WorkflowContext()
-        target = steps.CaptureErrors("errors", steps.LogMessage("foo"))
+        target = nodes.CaptureErrors("errors", nodes.LogMessage("foo"))
 
         target(context)
 
@@ -174,11 +179,11 @@ class TestCaptureErrors:
 
     def test_call__fail_on_first_error(self):
         context = WorkflowContext()
-        target = steps.CaptureErrors(
+        target = nodes.CaptureErrors(
             "errors",
-            steps.LogMessage("foo"),
-            steps.Step(valid_raise_exception),
-            steps.Step(valid_raise_exception),
+            nodes.LogMessage("foo"),
+            nodes.Step(valid_raise_exception),
+            nodes.Step(valid_raise_exception),
             try_all=False,
         )
 
@@ -188,11 +193,11 @@ class TestCaptureErrors:
 
     def test_call__continue_after_error(self):
         context = WorkflowContext()
-        target = steps.CaptureErrors(
+        target = nodes.CaptureErrors(
             "errors",
-            steps.LogMessage("foo"),
-            steps.Step(valid_raise_exception),
-            steps.Step(valid_raise_exception),
+            nodes.LogMessage("foo"),
+            nodes.Step(valid_raise_exception),
+            nodes.Step(valid_raise_exception),
         )
 
         target(context)
@@ -200,7 +205,7 @@ class TestCaptureErrors:
         assert [str(e) for e in context.state["errors"]] == ["'Boom!'", "'Boom!'"]
 
     def test_str(self):
-        target = steps.CaptureErrors("errors", steps.LogMessage("foo"))
+        target = nodes.CaptureErrors("errors", nodes.LogMessage("foo"))
 
         assert str(target) == "Capture errors into `errors`"
 
@@ -209,9 +214,9 @@ class TestConditional:
     def test_call__true_branch_with_named_variable(self):
         context = WorkflowContext(var=True)
         target = (
-            steps.Conditional("var")
-            .true(steps.append("message", "True"))
-            .false(steps.append("message", "False"))
+            nodes.Conditional("var")
+            .true(nodes.append("message", "True"))
+            .false(nodes.append("message", "False"))
         )
 
         target(context)
@@ -221,9 +226,9 @@ class TestConditional:
     def test_call__false_branch_with_named_variable(self):
         context = WorkflowContext(var=False)
         target = (
-            steps.Conditional("var")
-            .true(steps.append("message", "True"))
-            .false(steps.append("message", "False"))
+            nodes.Conditional("var")
+            .true(nodes.append("message", "True"))
+            .false(nodes.append("message", "False"))
         )
 
         target(context)
@@ -233,9 +238,9 @@ class TestConditional:
     def test_call__true_branch_with_callable(self):
         context = WorkflowContext()
         target = (
-            steps.Conditional(lambda ctx: True)
-            .true(steps.append("message", "True"))
-            .false(steps.append("message", "False"))
+            nodes.Conditional(lambda ctx: True)
+            .true(nodes.append("message", "True"))
+            .false(nodes.append("message", "False"))
         )
 
         target(context)
@@ -245,9 +250,9 @@ class TestConditional:
     def test_call__false_branch_with_callable(self):
         context = WorkflowContext()
         target = (
-            steps.Conditional(lambda ctx: False)
-            .true(steps.append("message", "True"))
-            .false(steps.append("message", "False"))
+            nodes.Conditional(lambda ctx: False)
+            .true(nodes.append("message", "True"))
+            .false(nodes.append("message", "False"))
         )
 
         target(context)
@@ -256,4 +261,55 @@ class TestConditional:
 
     def test_call__invalid_conditional(self):
         with pytest.raises(TypeError):
-            steps.Conditional(None)
+            nodes.Conditional(None)
+
+
+class TestSwitch:
+    @pytest.fixture
+    def target(self):
+        return (
+            nodes.Switch("who")
+            .case(
+                "foo", nodes.append("message", "foo1"), nodes.append("message", "foo2")
+            )
+            .case(
+                "bar", nodes.append("message", "bar1"), nodes.append("message", "bar2")
+            )
+        )
+
+    def test_call__matching_branch(self, target):
+        context = WorkflowContext(who="foo")
+
+        target(context)
+
+        assert context.state["message"] == ["foo1", "foo2"]
+
+    def test_call__using_default(self, target):
+        context = WorkflowContext(who="eek")
+        target.default(nodes.append("message", "default"))
+
+        target(context)
+
+        assert context.state["message"] == ["default"]
+
+    def test_call__no_matching_branch(self, target):
+        context = WorkflowContext(who="eek")
+
+        target(context)
+
+        assert "message" not in context.state
+
+    def test_call__with_lambda_condition(self):
+        context = WorkflowContext(who="foo")
+        target = nodes.Switch(lambda ctx: ctx.state["who"]).case(
+            "foo", nodes.append("message", "foo1")
+        )
+
+        target(context)
+
+        assert context.state["message"] == ["foo1"]
+
+    def test_call__with_invalid_condition(self):
+
+        with pytest.raises(TypeError, match="condition not context "):
+            nodes.Switch(None)
