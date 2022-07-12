@@ -1,9 +1,11 @@
+import logging
 from typing import Tuple
 
 import pytest
 
 from pyapp_flow import nodes, WorkflowContext
 from pyapp_flow.exceptions import FatalError, WorkflowRuntimeError
+from pyapp_flow.testing import call_node
 
 
 def valid_step_a(var_a: str, *, var_b: int) -> str:
@@ -78,12 +80,39 @@ class TestStep:
             target(context)
 
 
+class TestAppend:
+    def test_call__with_existing_variable(self):
+        target = nodes.Append(target_var="messages", message="bar")
+
+        context = call_node(target, messages=["foo"])
+
+        assert context.state["messages"] == ["foo", "bar"]
+
+    def test_call__with_no_variable(self):
+        target = nodes.Append(target_var="messages", message="bar")
+
+        context = call_node(target)
+
+        assert context.state["messages"] == ["bar"]
+
+    def test_call__with_formatting(self):
+        target = nodes.Append(target_var="messages", message="{who}bar")
+
+        context = call_node(target, who="foo")
+
+        assert context.state["messages"] == ["foobar"]
+
+    def test_str(self):
+        target = nodes.Append(target_var="messages", message="bar")
+
+        assert str(target) == "Append 'bar' to messages"
+
+
 class TestSetVar:
     def test_call(self):
-        context = WorkflowContext(var_a="foo", var_b=13)
         target = nodes.SetVar(var_b=42, var_c="bar")
 
-        target(context)
+        context = call_node(target, var_a="foo", var_b=13)
 
         assert context.state == {"var_a": "foo", "var_b": 42, "var_c": "bar"}
 
@@ -95,63 +124,62 @@ class TestSetVar:
 
 class TestForEach:
     def test_call__each_item_is_called(self):
-        context = WorkflowContext(var_a=["ab", "cd", "ef"], var_b=[])
         target = nodes.ForEach("char", in_var="var_a").loop(
             nodes.Step(lambda char, var_b: var_b.append(char))
         )
 
-        target(context)
+        context = call_node(
+            target,
+            var_a=["ab", "cd", "ef"],
+            var_b=[],
+        )
 
         assert context.state["var_a"] == context.state["var_b"]
 
     def test_call__in_var_is_missing(self):
-        context = WorkflowContext(var_b=[])
         target = nodes.ForEach("char", in_var="var_a").loop(
             nodes.Step(lambda char, var_b: var_b.append(char))
         )
 
         with pytest.raises(WorkflowRuntimeError, match="not found in context"):
-            target(context)
+            call_node(target, var_b=[])
 
     def test_call__in_var_is_not_iterable(self):
-        context = WorkflowContext(var_a=None, var_b=[])
         target = nodes.ForEach("char", in_var="var_a").loop(
             nodes.Step(lambda char, var_b: var_b.append(char))
         )
-
         with pytest.raises(WorkflowRuntimeError, match="is not iterable"):
-            target(context)
+            call_node(target, var_a=None, var_b=[])
 
     def test_call__in_var_is_multiple_parts(self):
-        context = WorkflowContext(var_a=[("a", 1), ("b", 2), ("c", 3)], var_b=[])
         target = nodes.ForEach(("key_a", "key_b"), in_var="var_a",).loop(
             nodes.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
         )
 
-        target(context)
-        actual = context.state["var_b"]
+        context = call_node(target, var_a=[("a", 1), ("b", 2), ("c", 3)], var_b=[])
 
-        assert actual == [1, 2, 3]
+        assert context.state["var_b"] == [1, 2, 3]
 
     def test_call__in_var_is_multiple_string(self):
-        context = WorkflowContext(var_a=[("a", 1), ("b", 2), ("c", 3)], var_b=[])
         target = nodes.ForEach("key_a, key_b", in_var="var_a",).loop(
             nodes.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
         )
 
-        target(context)
-        actual = context.state["var_b"]
+        context = call_node(
+            target,
+            var_a=[("a", 1), ("b", 2), ("c", 3)],
+            var_b=[],
+        )
 
-        assert actual == [1, 2, 3]
+        assert context.state["var_b"] == [1, 2, 3]
 
     def test_call__in_var_is_multiple_parts_not_iterable(self):
-        context = WorkflowContext(var_a=[("a", 1), 2, ("c", 3)], var_b=[])
         target = nodes.ForEach(("key_a", "key_b"), in_var="var_a",).loop(
             nodes.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
         )
 
         with pytest.raises(WorkflowRuntimeError, match="is not iterable"):
-            target(context)
+            call_node(target, var_a=[("a", 1), 2, ("c", 3)], var_b=[])
 
     def test_str__single_value(self):
         target = nodes.ForEach("char", in_var="var_a").loop(
@@ -170,98 +198,92 @@ class TestForEach:
 
 class TestCaptureErrors:
     def test_call__with_no_errors(self):
-        context = WorkflowContext()
-        target = nodes.CaptureErrors("errors", nodes.LogMessage("foo"))
-
-        target(context)
+        context = call_node(
+            nodes.CaptureErrors("errors").nodes(nodes.LogMessage("foo")),
+        )
 
         assert context.state["errors"] == []
 
     def test_call__fail_on_first_error(self):
-        context = WorkflowContext()
-        target = nodes.CaptureErrors(
-            "errors",
-            nodes.LogMessage("foo"),
-            nodes.Step(valid_raise_exception),
-            nodes.Step(valid_raise_exception),
-            try_all=False,
+        context = call_node(
+            nodes.CaptureErrors("errors", try_all=False).nodes(
+                nodes.LogMessage("foo"),
+                nodes.Step(valid_raise_exception),
+                nodes.Step(valid_raise_exception),
+            )
         )
-
-        target(context)
 
         assert [str(e) for e in context.state["errors"]] == ["'Boom!'"]
 
     def test_call__continue_after_error(self):
-        context = WorkflowContext()
-        target = nodes.CaptureErrors(
-            "errors",
-            nodes.LogMessage("foo"),
-            nodes.Step(valid_raise_exception),
-            nodes.Step(valid_raise_exception),
+        context = call_node(
+            nodes.CaptureErrors("errors").nodes(
+                nodes.LogMessage("foo"),
+                nodes.Step(valid_raise_exception),
+                nodes.Step(valid_raise_exception),
+            ),
         )
-
-        target(context)
 
         assert [str(e) for e in context.state["errors"]] == ["'Boom!'", "'Boom!'"]
 
     def test_str(self):
-        target = nodes.CaptureErrors("errors", nodes.LogMessage("foo"))
+        target = nodes.CaptureErrors("errors").nodes(nodes.LogMessage("foo"))
 
         assert str(target) == "Capture errors into `errors`"
 
 
 class TestConditional:
     def test_call__true_branch_with_named_variable(self):
-        context = WorkflowContext(var=True)
         target = (
             nodes.Conditional("var")
             .true(nodes.append("message", "True"))
             .false(nodes.append("message", "False"))
         )
-
-        target(context)
+        context = call_node(target, var=True)
 
         assert context.state["message"] == ["True"]
 
     def test_call__false_branch_with_named_variable(self):
-        context = WorkflowContext(var=False)
         target = (
             nodes.Conditional("var")
             .true(nodes.append("message", "True"))
             .false(nodes.append("message", "False"))
         )
 
-        target(context)
+        context = call_node(target, var=False)
 
         assert context.state["message"] == ["False"]
 
     def test_call__true_branch_with_callable(self):
-        context = WorkflowContext()
         target = (
             nodes.Conditional(lambda ctx: True)
             .true(nodes.append("message", "True"))
             .false(nodes.append("message", "False"))
         )
 
-        target(context)
+        context = call_node(target)
 
         assert context.state["message"] == ["True"]
 
     def test_call__false_branch_with_callable(self):
-        context = WorkflowContext()
         target = (
             nodes.Conditional(lambda ctx: False)
             .true(nodes.append("message", "True"))
             .false(nodes.append("message", "False"))
         )
 
-        target(context)
+        context = call_node(target)
 
         assert context.state["message"] == ["False"]
 
     def test_call__invalid_conditional(self):
         with pytest.raises(TypeError):
             nodes.Conditional(None)
+
+    def test_str(self):
+        target = nodes.Conditional("foo")
+
+        assert str(target) == "Conditional branch"
 
 
 class TestSwitch:
@@ -278,34 +300,28 @@ class TestSwitch:
         )
 
     def test_call__matching_branch(self, target):
-        context = WorkflowContext(who="foo")
-
-        target(context)
+        context = call_node(target, who="foo")
 
         assert context.state["message"] == ["foo1", "foo2"]
 
     def test_call__using_default(self, target):
-        context = WorkflowContext(who="eek")
         target.default(nodes.append("message", "default"))
 
-        target(context)
+        context = call_node(target, who="eek")
 
         assert context.state["message"] == ["default"]
 
     def test_call__no_matching_branch(self, target):
-        context = WorkflowContext(who="eek")
-
-        target(context)
+        context = call_node(target, who="eek")
 
         assert "message" not in context.state
 
     def test_call__with_lambda_condition(self):
-        context = WorkflowContext(who="foo")
         target = nodes.Switch(lambda ctx: ctx.state["who"]).case(
             "foo", nodes.append("message", "foo1")
         )
 
-        target(context)
+        context = call_node(target, who="foo")
 
         assert context.state["message"] == ["foo1"]
 
@@ -313,3 +329,39 @@ class TestSwitch:
 
         with pytest.raises(TypeError, match="condition not context "):
             nodes.Switch(None)
+
+    def test_str(self, target):
+        assert str(target) == "Switch into foo, bar"
+
+
+class TestLogMessage:
+    def test_call__with_default_level(self, caplog):
+        target = nodes.LogMessage("Foo{who}")
+
+        with caplog.at_level(logging.INFO):
+            call_node(target, who="bar")
+
+        assert caplog.messages == ["  Foobar"]
+
+    def test_call__with_error_level(self, caplog):
+        target = nodes.LogMessage("Foo{who}", level=logging.ERROR)
+
+        with caplog.at_level(logging.ERROR):
+            call_node(target, who="bar")
+
+        assert caplog.messages == ["  Foobar"]
+
+    def test_call__at_greater_depth(self, caplog):
+        context = WorkflowContext(who="oobar")
+        target = nodes.LogMessage("Foo{who}")
+
+        with caplog.at_level(logging.INFO):
+            with context:
+                target(context)
+
+        assert caplog.messages == ["    Foooobar"]
+
+    def test_str(self):
+        target = nodes.LogMessage("Foo{who}")
+
+        assert str(target) == "Log Message 'Foo{who}'"

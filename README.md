@@ -4,6 +4,11 @@ A simple application level workflow library.
 Allows complex processes to be broken into smaller specific steps, greatly 
 simplifying testing and re-use.
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=pyapp-org_pyapp-flow&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=pyapp-org_pyapp-flow)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=pyapp-org_pyapp-flow&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=pyapp-org_pyapp-flow)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=pyapp-org_pyapp-flow&metric=coverage)](https://sonarcloud.io/summary/new_code?id=pyapp-org_pyapp-flow)
+[![Once you go Black...](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
+
 
 ## Installation
 
