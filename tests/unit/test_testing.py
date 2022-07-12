@@ -16,7 +16,7 @@ def find_isbn(*, title: str) -> None | str:
 
 
 def test_call_step__where_value_is_returned():
-    context = testing.call_step(find_isbn, title="Hyperion")
+    context = testing.call_node(find_isbn, title="Hyperion")
 
     assert isinstance(context, WorkflowContext)
     assert context.state["title"] == "Hyperion"
@@ -24,7 +24,7 @@ def test_call_step__where_value_is_returned():
 
 
 def test_call_step__where_none_is_returned():
-    context = testing.call_step(find_isbn, title="Endymion")
+    context = testing.call_node(find_isbn, title="Endymion")
 
     assert isinstance(context, WorkflowContext)
     assert context.state["title"] == "Endymion"
