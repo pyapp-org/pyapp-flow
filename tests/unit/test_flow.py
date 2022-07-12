@@ -24,10 +24,15 @@ def raise_error(exception):
     return error
 
 
+sub_flow = flow.Workflow(name="Sub Flow").nodes(
+    add_message("sub_flow"),
+)
+
+
 sample_flow = (
     flow.Workflow(name="Sample Flow")
     .set_vars(messages=[], arg_1=13, arg_2=42)
-    .nodes(add_args, add_message("single"), add_message("{arg_t:03d}"))
+    .nodes(add_args, add_message("single"), add_message("{arg_t:03d}"), sub_flow)
     .nested(add_message("nested"))
     .capture_errors(
         "errors",
@@ -42,6 +47,7 @@ sample_flow = (
         add_message("arg_1 is smaller"),
     )
     .foreach("error", "errors", flow.log_message("{error}"), add_message("{error}"))
+    .switch("arg_1", {13: [add_message("it's 13")], 42: [add_message("it's 42")]})
 )
 
 
@@ -51,8 +57,14 @@ def test_workflow():
     assert actual.state["messages"] == [
         "single",
         "055",
+        "sub_flow",
         "nested",
         "arg_1 is smaller",
         "Error A",
         "Error B",
+        "it's 13",
     ]
+
+
+def test_workflow_str():
+    assert str(sub_flow) == "Sub Flow"
