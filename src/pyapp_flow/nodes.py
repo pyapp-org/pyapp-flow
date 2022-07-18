@@ -404,7 +404,8 @@ class ForEach:
                 call_nodes(context, self._nodes)
 
     def __str__(self):
-        return f"For ({', '.join(self.target_vars)}) in `{self.in_var}`"
+        target_vars = ", ".join(f"`{var}`" for var in self.target_vars)
+        return f"For ({target_vars}) in `{self.in_var}`"
 
     def loop(self, *nodes: Callable) -> "ForEach":
         """
