@@ -59,18 +59,30 @@ class Workflow(Nodes):
     def __str__(self):
         return self.name
 
-    def execute(self, context: WorkflowContext = None) -> WorkflowContext:
+    def execute(
+        self, context: WorkflowContext = None, **context_vars
+    ) -> WorkflowContext:
         """
         Execute workflow
+
+        :param context: Optional context; a new one will be created if not supplied.
+        :param context_vars: Key/Value pairs to initialise the context with.
+        :return: The context used to execute the workflow
+
         """
         context = context or WorkflowContext()
+        context.state.update(context_vars)
         context.logger.info("⏩ Workflow: `%s`", self.name)
         self._execute(context)
         return context
 
     def nodes(self, *nodes_: Callable) -> "Workflow":
         """
-        Add additional node(s)
+        Append additional node(s) into the node list
+
+        :param nodes_: Nodes to append to the current block
+        :return: Returns self; fluent interface
+
         """
         self._nodes.extend(nodes_)
         return self
@@ -78,6 +90,10 @@ class Workflow(Nodes):
     def nested(self, *nodes_: Callable) -> "Workflow":
         """
         Add nested node(s), nested nodes have their own scope
+
+        :param nodes_: Collection of nodes call from nested block.
+        :return: Returns self; fluent interface
+
         """
         self._nodes.append(Nodes(*nodes_))
         return self
@@ -85,6 +101,10 @@ class Workflow(Nodes):
     def set_vars(self, **kwargs) -> "Workflow":
         """
         Set variables to a particular value
+
+        :param kwargs: Key/Value pairs to update in the context
+        :return: Returns self; fluent interface
+
         """
         self._nodes.append(SetVar(**kwargs))
         return self
