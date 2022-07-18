@@ -1,7 +1,7 @@
 """
 Application Workflow
 """
-from typing import Callable, Union, Sequence, Mapping, Hashable
+from typing import Callable
 
 from . import exceptions
 from .datastructures import WorkflowContext
@@ -27,7 +27,7 @@ class Nodes:
 
     __slots__ = ("_nodes",)
 
-    def __init__(self, *nodes_: Callable):
+    def __init__(self, *nodes_):
         self._nodes = list(nodes_)
 
     def __call__(self, context: WorkflowContext):
@@ -41,13 +41,17 @@ class Nodes:
 
 class Workflow(Nodes):
     """
-    A workflow definition.
+    A collection of Nodes that make up a workflow.
+
+    :param name: The name of the workflow
+    :param description: An optional description (similar to doc text) for the
+        workflow.
     """
 
     __slots__ = ("name", "description")
 
-    def __init__(self, *nodes_: Callable, name: str, description: str = None):
-        super().__init__(*nodes_)
+    def __init__(self, name: str, description: str = None):
+        super().__init__()
         self.name = name
         self.description = description
 
@@ -63,7 +67,7 @@ class Workflow(Nodes):
         self, context: WorkflowContext = None, **context_vars
     ) -> WorkflowContext:
         """
-        Execute workflow
+        Execute workflow. This is the main way to trigger a work flow
 
         :param context: Optional context; a new one will be created if not supplied.
         :param context_vars: Key/Value pairs to initialise the context with.

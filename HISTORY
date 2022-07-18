@@ -1,16 +1,24 @@
 0.6.0
 =====
 
-Breaking Change
----------------
+This release brings the library rapidly toward a 1.0 release solidifying the API
+and approach to the API design.
 
-- Simplified API and removed most snake case aliases, removed aliases from Workflow object.
+
+Breaking Changes
+----------------
+
+- Simplified API and removed most snake case aliases, removed aliases from
+  Workflow object.
+- Removed init arguments from on all Nodes in favour of fluent style methods.
 
 Changes
 -------
 
-- Add Sphinx extension for documentation workflow (this is only partial does not map steps yet)
+- Add Sphinx extension for documentation workflow (this is only partial does not
+  map steps yet)
 - More tests
+- Reference documentation
 
 
 0.5.0

@@ -186,14 +186,14 @@ class TestForEach:
             nodes.Step(lambda char, var_b: var_b.append(char))
         )
 
-        assert str(target) == "For (char) in `var_a`"
+        assert str(target) == "For (`char`) in `var_a`"
 
     def test_str__multi_value(self):
         target = nodes.ForEach(("key_a", "key_b"), in_var="var_a").loop(
             nodes.Step(lambda char, var_b: var_b.append(char)),
         )
 
-        assert str(target) == "For (key_a, key_b) in `var_a`"
+        assert str(target) == "For (`key_a`, `key_b`) in `var_a`"
 
 
 class TestCaptureErrors:

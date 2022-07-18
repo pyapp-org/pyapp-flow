@@ -24,14 +24,15 @@ class StateContext:
 
     def push_state(self):
         """
-        Clone the current state so any modification doesn't affect the outer scope
+        Clone the current state so any modification doesn't affect the outer
+        scope and append it to the state vector.
         """
         self.state = dict(self.state)
         self._state_vector.append(self.state)
 
     def pop_state(self):
         """
-        Discard current state scope
+        Pop the top state from the state vector.
         """
         self._state_vector.pop()
         self.state = self._state_vector[-1]
@@ -39,14 +40,34 @@ class StateContext:
     @property
     def depth(self) -> int:
         """
-        Current nesting level
+        Current scope depth; or size of the current state vector
         """
         return len(self._state_vector)
 
 
 class WorkflowContext(StateContext):
     """
-    Current context of the workflow
+    Current context of the workflow.
+
+    This object can be used as a context object to apply state scoping.
+
+    The current state can be modified via the ``state`` property, this is a
+    ``dict`` of Key/Value pairs.
+
+    :param logger: And optional logger; one will be created named `pyapp_flow`
+        if not provided.
+    :param variables: Initial state of variables.
+
+    .. code-block:: python
+
+        context = WorkflowContext(foo="123")
+
+        with context:
+            assert context.state["foo"] == "123"
+            context.state["bar"] == "456"
+
+        assert "bar" not in context.state
+
     """
 
     __slots__ = ("logger",)
@@ -58,49 +79,54 @@ class WorkflowContext(StateContext):
     @property
     def indent(self) -> str:
         """
-        Helper that returns an indent for printing
+        Helper that returns an indent based on the scope depth for formatting
+        log messages.
         """
         return "  " * self.depth
 
     def log(self, level: int, msg: str, *args, **kwargs):
         """
-        Log a message
+        Log a message to logger indented by the current scope depth.
         """
         self.logger.log(level, f"{self.indent}{msg}", *args, **kwargs)
 
     def debug(self, msg, *args):
         """
-        Write indented debug message to log
+        Write a debug message to log
         """
         self.log(logging.DEBUG, msg, *args)
 
     def info(self, msg, *args):
         """
-        Write indented info message to log
+        Write a info message to log
         """
         self.log(logging.INFO, msg, *args)
 
     def warning(self, msg, *args):
         """
-        Write indented warning message to log
+        Write a warning message to log
         """
         self.log(logging.WARNING, msg, *args)
 
     def error(self, msg, *args):
         """
-        Write indented error message to log
+        Write a error message to log
         """
         self.log(logging.ERROR, msg, *args)
 
     def exception(self, msg, *args):
         """
-        Write indented error message to log
+        Write a exception message to log
         """
         self.log(logging.ERROR, msg, *args, exc_info=True)
 
     def format(self, message: str) -> str:
         """
-        Format a message using context variables
+        Format a message using context variables.
+
+        Return a formatted version of message, using substitutions context
+        variables. The substitutions are identified by braces ('{' and '}').
+
         """
         try:
             return message.format(**self.state)
