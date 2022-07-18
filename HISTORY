@@ -10,13 +10,13 @@ Breaking Changes
 
 - Simplified API and removed most snake case aliases, removed aliases from
   Workflow object.
-- Removed init arguments from on all Nodes in favour of fluent style methods.
+- Removed init arguments from all Nodes in favour of fluent style methods.
 
 Changes
 -------
 
 - Add Sphinx extension for documentation workflow (this is only partial does not
-  map steps yet)
+  document steps yet)
 - More tests
 - Reference documentation
 
