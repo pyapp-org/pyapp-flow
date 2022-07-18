@@ -38,6 +38,11 @@ def valid_h(*, var_a: str, var_b: int = 42):
     pass
 
 
+def valid_i(*, var_a: str, var_b: int = 42) -> str:
+    foo = "abc"
+    return foo
+
+
 @pytest.mark.parametrize(
     "func, expected",
     (
@@ -49,6 +54,7 @@ def valid_h(*, var_a: str, var_b: int = 42):
         (valid_f, ({"var_a": str}, None)),
         (valid_g, ({"var_a": str, "var_b": int}, None)),
         (valid_h, ({"var_a": str, "var_b": int}, None)),
+        (valid_i, ({"var_a": str, "var_b": int}, None)),
     ),
 )
 def test_extract_inputs__where_args_are_valid(func, expected):
