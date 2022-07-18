@@ -58,3 +58,10 @@ class TestWorkflowContext:
 
         assert target.state == {"var_a": 1, "var_b": 2, "var_c": 3}
         assert target.depth == 1
+
+
+class TestDescribeContext:
+    def test_init(self):
+        target = datastructures.DescribeContext("foo", bar=int)
+
+        assert target.state == {"foo": (None, None), "bar": (int, None)}

@@ -20,7 +20,11 @@ def extract_inputs(func: Callable) -> Tuple[Mapping[str, type], str]:
 
     inputs = {}
     context_var = None
-    for name in func_code.co_varnames:
+    total_args = sum(
+        getattr(func_code, name, 0)
+        for name in ("co_argcount", "co_posonlyargcount", "co_kwonlyargcount")
+    )
+    for name in func_code.co_varnames[:total_args]:
         type_ = annotations.get(name)
         # Extract a context instance
         if type_ is WorkflowContext:

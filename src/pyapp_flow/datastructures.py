@@ -117,6 +117,8 @@ class DescribeContext(StateContext):
     __slots__ = ()
 
     def __init__(self, *variables: str, **typed_variables: Type):
-        state = {var: None for var in variables}
-        state.update(typed_variables)
+        state = {var: (None, None) for var in variables}
+        state.update(
+            {var: (var_type, None) for var, var_type in typed_variables.items()}
+        )
         super().__init__(state)

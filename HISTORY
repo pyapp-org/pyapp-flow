@@ -1,3 +1,11 @@
+0.5.0
+=====
+
+- Fix bug where local args are being included in step input kwargs
+
+- Add Sphinx extension for documentation steps
+
+
 0.1.0
 =====
 

@@ -7,7 +7,7 @@ from .datastructures import WorkflowContext
 
 
 def call_node(
-    step: Callable[[WorkflowContext], Any], **context_vars: Any
+    node: Callable[[WorkflowContext], Any], **context_vars: Any
 ) -> WorkflowContext:
     """
     Simplify testing of steps by providing a step and the required context variables.
@@ -24,5 +24,5 @@ def call_node(
 
     """
     context = WorkflowContext(**context_vars)
-    step(context)
+    node(context)
     return context
