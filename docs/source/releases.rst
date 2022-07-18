@@ -1,0 +1,5 @@
+########
+Releases
+########
+
+.. include:: ../../HISTORY
