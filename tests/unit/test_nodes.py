@@ -236,8 +236,8 @@ class TestConditional:
     def test_call__true_branch_with_named_variable(self):
         target = (
             nodes.Conditional("var")
-            .true(nodes.append("message", "True"))
-            .false(nodes.append("message", "False"))
+            .true(nodes.Append("message", "True"))
+            .false(nodes.Append("message", "False"))
         )
         context = call_node(target, var=True)
 
@@ -246,8 +246,8 @@ class TestConditional:
     def test_call__false_branch_with_named_variable(self):
         target = (
             nodes.Conditional("var")
-            .true(nodes.append("message", "True"))
-            .false(nodes.append("message", "False"))
+            .true(nodes.Append("message", "True"))
+            .false(nodes.Append("message", "False"))
         )
 
         context = call_node(target, var=False)
@@ -257,8 +257,8 @@ class TestConditional:
     def test_call__true_branch_with_callable(self):
         target = (
             nodes.Conditional(lambda ctx: True)
-            .true(nodes.append("message", "True"))
-            .false(nodes.append("message", "False"))
+            .true(nodes.Append("message", "True"))
+            .false(nodes.Append("message", "False"))
         )
 
         context = call_node(target)
@@ -268,8 +268,8 @@ class TestConditional:
     def test_call__false_branch_with_callable(self):
         target = (
             nodes.Conditional(lambda ctx: False)
-            .true(nodes.append("message", "True"))
-            .false(nodes.append("message", "False"))
+            .true(nodes.Append("message", "True"))
+            .false(nodes.Append("message", "False"))
         )
 
         context = call_node(target)
@@ -292,10 +292,10 @@ class TestSwitch:
         return (
             nodes.Switch("who")
             .case(
-                "foo", nodes.append("message", "foo1"), nodes.append("message", "foo2")
+                "foo", nodes.Append("message", "foo1"), nodes.Append("message", "foo2")
             )
             .case(
-                "bar", nodes.append("message", "bar1"), nodes.append("message", "bar2")
+                "bar", nodes.Append("message", "bar1"), nodes.Append("message", "bar2")
             )
         )
 
@@ -305,7 +305,7 @@ class TestSwitch:
         assert context.state["message"] == ["foo1", "foo2"]
 
     def test_call__using_default(self, target):
-        target.default(nodes.append("message", "default"))
+        target.default(nodes.Append("message", "default"))
 
         context = call_node(target, who="eek")
 
@@ -318,7 +318,7 @@ class TestSwitch:
 
     def test_call__with_lambda_condition(self):
         target = nodes.Switch(lambda ctx: ctx.state["who"]).case(
-            "foo", nodes.append("message", "foo1")
+            "foo", nodes.Append("message", "foo1")
         )
 
         context = call_node(target, who="foo")

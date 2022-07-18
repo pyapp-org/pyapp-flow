@@ -46,7 +46,7 @@ sample_flow = (
         (lambda ctx: ctx.state["arg_1"] < ctx.state["arg_2"]),
         add_message("arg_1 is smaller"),
     )
-    .foreach("error", "errors", flow.log_message("{error}"), add_message("{error}"))
+    .foreach("error", "errors", flow.LogMessage("{error}"), add_message("{error}"))
     .switch("arg_1", {13: [add_message("it's 13")], 42: [add_message("it's 42")]})
 )
 

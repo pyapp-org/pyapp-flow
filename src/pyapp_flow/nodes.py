@@ -139,9 +139,6 @@ class SetVar:
         return f"Set value(s) for {', '.join(self.values)}"
 
 
-set_var = SetVar
-
-
 class Append:
     """
     Append a value to a list
@@ -165,9 +162,6 @@ class Append:
 
     def __str__(self):
         return f"Append {self.message!r} to {self.target_var}"
-
-
-append = Append
 
 
 class CaptureErrors:
@@ -215,9 +209,6 @@ class CaptureErrors:
         """
         self._nodes.extend(nodes)
         return self
-
-
-capture = CaptureErrors
 
 
 class Conditional:
@@ -277,7 +268,7 @@ class Conditional:
         return self
 
 
-conditional = If = Conditional
+If = Conditional
 
 
 class Switch:
@@ -348,9 +339,6 @@ class Switch:
         return self
 
 
-switch = Switch
-
-
 class LogMessage:
     """
     Print a message to log with optional level.
@@ -371,9 +359,6 @@ class LogMessage:
 
     def __str__(self):
         return f"Log Message {self.message!r}"
-
-
-log_message = LogMessage
 
 
 class ForEach:
@@ -455,6 +440,3 @@ class ForEach:
             context.state.update(pairs)
 
         return _values
-
-
-for_each = ForEach

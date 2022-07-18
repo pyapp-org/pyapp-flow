@@ -9,20 +9,13 @@ from .functions import extract_inputs
 from .nodes import (
     step,
     Step,
-    set_var,
     SetVar,
-    for_each,
     ForEach,
-    capture,
     CaptureErrors,
-    conditional,
     Conditional,
     If,
-    switch,
     Switch,
-    log_message,
     LogMessage,
-    append,
     Append,
 )
 
@@ -93,7 +86,7 @@ class Workflow(Nodes):
         """
         Set variables to a particular value
         """
-        self._nodes.append(set_var(**kwargs))
+        self._nodes.append(SetVar(**kwargs))
         return self
 
     def foreach(
