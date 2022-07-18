@@ -5,8 +5,8 @@ import pyapp_flow as flow
 from pyapp_flow.ext import sphinx
 
 
-@flow.step(name="Sample Step", output="arg_c")
-def sample_step(arg_a: int, *, arg_b: str) -> bool:
+@flow.step(name="Sample Step", output="arg_d")
+def sample_step(arg_a: int, *, arg_b: str, arg_c) -> bool:
     """
     This is a sample step that just outputs false
     """
@@ -65,10 +65,11 @@ class TestStepDocumenter:
             call("", ANY),
             call("* *arg_a*: *int*", ANY),
             call("* *arg_b*: *str*", ANY),
+            call("* *arg_c*", ANY),
             call("", ANY),
             call("**Output Variable(s)**", ANY),
             call("", ANY),
-            call("* *arg_c*: *bool*", ANY),
+            call("* *arg_d*: *bool*", ANY),
             call("", ANY),
         ]
 
@@ -126,18 +127,9 @@ class TestWorkflowDocumenter:
             ["This is a sample workflow that just runs a simple operation", ""]
         ]
 
-    # def test_document_members(self, target):
-    #     target.document_members()
-    #
-    #     assert target.directive.result.append.mock_calls == [
-    #         call("", ANY),
-    #         call("**Input Variable(s)**", ANY),
-    #         call("", ANY),
-    #         call("* *arg_a*: *int*", ANY),
-    #         call("* *arg_b*: *str*", ANY),
-    #         call("", ANY),
-    #         call("**Output Variable(s)**", ANY),
-    #         call("", ANY),
-    #         call("* *arg_c*: *bool*", ANY),
-    #         call("", ANY),
-    #     ]
+    def test_document_members(self, target):
+        target.document_members()
+
+        assert target.directive.result.append.mock_calls == [
+            call("", ANY),
+        ]
