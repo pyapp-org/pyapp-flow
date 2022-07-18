@@ -34,20 +34,19 @@ def load_names(root_path: Path) -> Sequence[str]:
     with (root_path / "names.txt").open() as f_in:
         return [name.strip() for name in f_in.readlines()]
 
-
 @flow.step(name="Say hello")
 def say_hi(name: str):
     print(f"Hello {name}")
-
 
 # Define a workflow:
 
 great_everybody = (
     flow.Workflow(name="Great everybody in names file")
-    .nodes(load_names)
-    .foreach("name", "names", say_hi)
+    .nodes(
+      load_names,
+      flow.ForEach("name", in_var="names").loop(say_hi)
+    )
 )
-
 
 # Execute workflow:
 
@@ -176,7 +175,7 @@ variable scoping and helper methods for logging progress.
     variable within the context.
 
     ```python
-    CaptureErrors("errors", my_flaky_step)
+    CaptureErrors("errors").nodes(my_flaky_step)
     ```
   
     This node also has a `try_all` argument that controls the behaviour when an  
@@ -186,9 +185,10 @@ variable scoping and helper methods for logging progress.
     ```python
     CaptureErrors(
         "errors", 
+        try_all=True
+    ).nodes(
         my_first_check, 
         my_second_check, 
-        try_all=True
     )
     ```
 
