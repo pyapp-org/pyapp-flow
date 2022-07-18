@@ -1,8 +1,33 @@
+0.6.0
+=====
+
+This release brings the library rapidly toward a 1.0 release solidifying the API
+and approach to the API design.
+
+
+Breaking Changes
+----------------
+
+- Simplified API and removed most snake case aliases, removed aliases from
+  Workflow object.
+- Removed init arguments from all Nodes in favour of fluent style methods.
+
+Changes
+-------
+
+- Add Sphinx extension for documentation workflow (this is only partial does not
+  document steps yet)
+- More tests
+- Reference documentation
+
+
 0.5.0
 =====
 
-- Fix bug where local args are being included in step input kwargs
+Changes
+-------
 
+- Fix bug where local args are being included in step input kwargs
 - Add Sphinx extension for documentation steps
 
 

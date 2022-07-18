@@ -1,5 +1,5 @@
 """
-Helper methods for testing workflows and steps
+Helper methods for testing workflows
 """
 from typing import Any, Callable
 
@@ -10,13 +10,15 @@ def call_node(
     node: Callable[[WorkflowContext], Any], **context_vars: Any
 ) -> WorkflowContext:
     """
-    Simplify testing of steps by providing a step and the required context variables.
+    Simplifies the testing of any node by handling the boilerplate code required
+    to set up a :class:`pyapp_flow.WorkflowContext` with the expected variables.
 
     Method returns the generated context object to be asserted on.
 
     .. code-block:: python
 
         def test_find_isbn__with_known_title():
+
             context = call_node(find_isbn, title="Hyperion")
             actual = context.state["isbn_13"]
 

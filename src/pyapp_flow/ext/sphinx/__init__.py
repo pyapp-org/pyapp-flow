@@ -37,9 +37,8 @@ class StepDocumenter(ModuleLevelDocumenter):
         domain = getattr(self, "domain", "py")
         directive = getattr(self, "directivetype", "function")
         source_name = self.get_sourcename()
-        name = f"{step.func.__module__}.{step.func.__name__}"
 
-        self.add_line(f".. {domain}:{directive}:: {name}", source_name)
+        self.add_line(f".. {domain}:{directive}:: {self.name}", source_name)
         self.add_line("", source_name)
         self.add_line(f"{self.indent}**{step.name}**", source_name)
 
@@ -84,19 +83,72 @@ class StepDocumenter(ModuleLevelDocumenter):
         self.add_line("", source_name)  # Ensure blank line
 
         self.add_line("**Input Variable(s)**", source_name)
-        self.add_line(
-            "These variables are resolved from the :py:class:`pyapp_flow.datastructures.WorkflowContext` at runtime",
-            source_name,
-        )
         self._add_variable_lines(step.inputs.items(), source_name)
 
         self.add_line("**Output Variable(s)**", source_name)
-        self.add_line(
-            "These variables are added to the :py:class:`pyapp_flow.datastructures.WorkflowContext` at runtime",
-            source_name,
-        )
         self._add_variable_lines(step.outputs, source_name)
+
+
+class WorkflowDocumenter(ModuleLevelDocumenter):
+    """
+    Extension to ``sphinx.ext.autodoc`` to support documenting Workflows.
+
+    Usage::
+
+        .. autoflow-workflow:: namespace.path.to.your.workflow
+
+    """
+
+    objtype = "flow-workflow"
+
+    @classmethod
+    def can_document_member(cls, member: Any, *_) -> bool:
+        """
+        Called to see if a member can be documented by this Documenter.
+        """
+        return isinstance(member, flow.Workflow)
+
+    def add_directive_header(self, sig: str) -> None:
+        """
+        Add the directive header and options to the generated content.
+        """
+        workflow = cast(flow.Workflow, self.object)
+        domain = getattr(self, "domain", "py")
+        directive = getattr(self, "directivetype", "function")
+        source_name = self.get_sourcename()
+
+        self.add_line(f".. {domain}:{directive}:: {self.name}", source_name)
+        self.add_line("", source_name)
+        self.add_line(f"{self.indent}**{workflow.name}**", source_name)
+
+    def get_doc(self) -> Optional[List[List[str]]]:
+        """
+        Decode and return lines of the docstring(s) for the object.
+
+        When it returns None, autodoc-process-docstring will not be called for this
+        object.
+        """
+        workflow = cast(flow.Workflow, self.object)
+
+        docstring = workflow.description
+        doc = []
+        if docstring:
+            tab_width = self.directive.state.document.settings.tab_width
+            doc.append(prepare_docstring(docstring, tab_width))
+        return doc
+
+    def document_members(self, all_members: bool = False) -> None:
+        """Generate reST for member documentation.
+
+        If *all_members* is True, document all members, else those given by
+        *self.options.members*.
+        """
+        workflow = cast(flow.Workflow, self.object)
+        source_name = self.get_sourcename()
+
+        self.add_line("", source_name)  # Ensure blank line
 
 
 def setup(app):  # pragma: no cover
     app.add_autodocumenter(StepDocumenter)
+    app.add_autodocumenter(WorkflowDocumenter)
