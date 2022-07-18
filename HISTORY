@@ -1,3 +1,16 @@
+0.6.0
+=====
+
+Breaking Change
+---------------
+
+- Simplified API and removed most snake case aliases, removed aliases from Workflow object.
+
+- Add Sphinx extension for documentation workflow (this is only partial does not map steps yet)
+
+- More tests
+
+
 0.5.0
 =====
 
