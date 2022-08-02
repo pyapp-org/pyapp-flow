@@ -59,6 +59,11 @@ And the resulting documentation:
 
   .. autoflow-step:: docs_example.library.read_books
 
+Options
+~~~~~~~
+
+The ``noname`` option prevents the step name from being included in documented output.
+
 
 Document a Workflow
 -------------------
@@ -95,3 +100,8 @@ And the Sphinx/ReStructuredText required to generate documentation:
 And the resulting documentation:
 
   .. autoflow-workflow:: docs_example.library.report_books_workflow
+
+Options
+~~~~~~~
+
+The ``noname`` option prevents the workflow name from being included in documented output.

@@ -122,25 +122,34 @@ class SetVar:
     """
     Set context variable to specified values
 
-    :param values: Key/Value pairs applied to the context
+    :param values: Key/Value pairs or Key/Callable pairs to be applied to the
+                   context.
 
     .. code-block:: python
 
         SetVar(
             title="Hyperion",
             published=datetime.date(1996, 11, 1),
+            updated=lambda context: datetime.datetime.now()
         )
 
     """
 
     __slots__ = ("values",)
 
-    def __init__(self, **values):
+    def __init__(
+        self,
+        **values: Union[object, Callable[[WorkflowContext], object]],
+    ):
         self.values = values
 
     def __call__(self, context: WorkflowContext):
         context.info("📝 %s", self)
-        context.state.update(self.values)
+        values = (
+            (key, value(context) if callable(value) else value)
+            for key, value in self.values.items()
+        )
+        context.state.update(values)
 
     def __str__(self):
         return f"Set value(s) for {', '.join(self.values)}"

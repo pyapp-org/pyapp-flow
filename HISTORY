@@ -1,3 +1,21 @@
+0.7.0
+=====
+
+Changes
+-------
+
+- `SetVar` can be passed a callable that accepts a context
+
+Sphinx Extension
+----------------
+
+- Step autodoc will now:
+  - Add ``noname`` option to stop name being included in step and workflow
+  - Hide input section if there are no inputs
+  - Hide output section if there are no outputs
+  - Only pluralise output if there are multiple outputs
+
+
 0.6.0
 =====
 

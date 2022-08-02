@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 
 from pyapp_flow import datastructures
@@ -58,6 +60,43 @@ class TestWorkflowContext:
 
         assert target.state == {"var_a": 1, "var_b": 2, "var_c": 3}
         assert target.depth == 1
+
+    @pytest.mark.parametrize(
+        "method, message, expected_level",
+        (
+            (
+                datastructures.WorkflowContext.debug,
+                "Log a debug message",
+                logging.DEBUG,
+            ),
+            (datastructures.WorkflowContext.info, "Log an info message", logging.INFO),
+            (
+                datastructures.WorkflowContext.warning,
+                "Log an warning message",
+                logging.WARNING,
+            ),
+            (
+                datastructures.WorkflowContext.error,
+                "Log an error message",
+                logging.ERROR,
+            ),
+            (
+                datastructures.WorkflowContext.exception,
+                "Log an exception message",
+                logging.ERROR,
+            ),
+        ),
+    )
+    def test_logging__where_level_enabled(
+        self, caplog, method, message, expected_level
+    ):
+        caplog.set_level(logging.DEBUG)
+        target = datastructures.WorkflowContext(var_a=1, var_b=2)
+
+        method(target, message)
+        actual = caplog.record_tuples[0]
+
+        assert actual == ("pyapp_flow", expected_level, f"  {message}")
 
 
 class TestDescribeContext:

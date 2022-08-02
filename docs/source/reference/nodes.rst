@@ -4,48 +4,58 @@ Builtin Nodes
 
 Nodes are the basic building blocks of Workflows
 
+
 Modify context variables
 ========================
 
+SetVar
+------
+
 .. autoclass:: pyapp_flow.SetVar
 
-----
+
+Append
+------
 
 .. autoclass:: pyapp_flow.Append
 
-----
+CaptureErrors
+-------------
 
 .. autoclass:: pyapp_flow.CaptureErrors
    :members:
-
-----
 
 
 Provide feedback
 ================
 
-.. autoclass:: pyapp_flow.LogMessage
+LogMessage
+----------
 
-----
+.. autoclass:: pyapp_flow.LogMessage
 
 
 Branching
 =========
 
+Conditional
+-----------
+
 .. autoclass:: pyapp_flow.Conditional
    :members:
 
-----
+Switch
+------
 
 .. autoclass:: pyapp_flow.Switch
    :members:
 
 
-----
-
-
 Iteration
 =========
+
+ForEach
+-------
 
 .. autoclass:: pyapp_flow.ForEach
    :members:
