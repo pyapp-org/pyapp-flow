@@ -10,7 +10,7 @@ Sphinx Extension
 ----------------
 
 - Step autodoc will now:
-  - Add ``noname`` option to stop name being included
+  - Add ``noname`` option to stop name being included in step and workflow
   - Hide input section if there are no inputs
   - Hide output section if there are no outputs
   - Only pluralise output if there are multiple outputs
