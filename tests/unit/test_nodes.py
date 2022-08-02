@@ -110,11 +110,18 @@ class TestAppend:
 
 class TestSetVar:
     def test_call(self):
-        target = nodes.SetVar(var_b=42, var_c="bar")
+        target = nodes.SetVar(
+            var_b=42, var_c="bar", var_d=lambda ctx: ctx.state["var_a"] + "bar"
+        )
 
         context = call_node(target, var_a="foo", var_b=13)
 
-        assert context.state == {"var_a": "foo", "var_b": 42, "var_c": "bar"}
+        assert context.state == {
+            "var_a": "foo",
+            "var_b": 42,
+            "var_c": "bar",
+            "var_d": "foobar",
+        }
 
     def test_str(self):
         target = nodes.SetVar(var_b=42, var_c="bar")
