@@ -160,7 +160,7 @@ class WorkflowDocumenter(ModuleLevelDocumenter):
         If *all_members* is True, document all members, else those given by
         *self.options.members*.
         """
-        workflow = cast(flow.Workflow, self.object)
+        # workflow = cast(flow.Workflow, self.object)
         source_name = self.get_sourcename()
 
         self.add_line("", source_name)  # Ensure blank line
