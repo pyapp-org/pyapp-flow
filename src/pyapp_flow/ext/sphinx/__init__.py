@@ -3,9 +3,10 @@ Sphinx documentation generation for Steps
 """
 from typing import cast, Any, Optional, List, Iterable, Tuple, Type
 
-from sphinx.ext.autodoc import ModuleLevelDocumenter
+from sphinx.ext.autodoc import ModuleLevelDocumenter, bool_option
 from sphinx.util.docstrings import prepare_docstring
 from sphinx.util.inspect import getdoc
+from sphinx.util.typing import OptionSpec
 
 import pyapp_flow as flow
 
@@ -21,6 +22,11 @@ class StepDocumenter(ModuleLevelDocumenter):
     """
 
     objtype = "flow-step"
+
+    option_spec: OptionSpec = dict(
+        noname=bool_option,
+        **ModuleLevelDocumenter.option_spec,
+    )
 
     @classmethod
     def can_document_member(cls, member: Any, *_) -> bool:
@@ -39,8 +45,9 @@ class StepDocumenter(ModuleLevelDocumenter):
         source_name = self.get_sourcename()
 
         self.add_line(f".. {domain}:{directive}:: {self.name}", source_name)
-        self.add_line("", source_name)
-        self.add_line(f"{self.indent}**{step.name}**", source_name)
+        if self.options.noname is not True:
+            self.add_line("", source_name)
+            self.add_line(f"{self.indent}**{step.name}**", source_name)
 
     def get_doc(self) -> Optional[List[List[str]]]:
         """
@@ -82,11 +89,16 @@ class StepDocumenter(ModuleLevelDocumenter):
 
         self.add_line("", source_name)  # Ensure blank line
 
-        self.add_line("**Input Variable(s)**", source_name)
-        self._add_variable_lines(step.inputs.items(), source_name)
+        if step.inputs:
+            self.add_line(f"**Input Variable(s)**", source_name)
+            self._add_variable_lines(step.inputs.items(), source_name)
 
-        self.add_line("**Output Variable(s)**", source_name)
-        self._add_variable_lines(step.outputs, source_name)
+        if step.outputs:
+            self.add_line(
+                f"**Output Variable{'s' if len(step.outputs) > 1 else ''}**",
+                source_name,
+            )
+            self._add_variable_lines(step.outputs, source_name)
 
 
 class WorkflowDocumenter(ModuleLevelDocumenter):

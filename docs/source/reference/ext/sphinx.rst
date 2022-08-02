@@ -49,6 +49,10 @@ Document the following step and the ``autoflow-step`` directive.
             reader = csv.reader(f)
             return list(reader)
 
+**Options**
+
+The ``noname`` option prevents the name from being included in documented output.
+
 And the Sphinx/ReStructuredText required to generate documentation:
 
 .. code-block:: rst
