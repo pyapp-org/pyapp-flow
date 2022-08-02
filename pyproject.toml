@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyapp-flow"
-version = "0.6.0"
+version = "0.7.0"
 description = "Application workflow framework"
 authors = ["Tim Savage <tim@savage.company>"]
 license = "BSD-3-Clause"
