@@ -123,10 +123,14 @@ not_a_workflow = object()
 class TestWorkflowDocumenter:
     @pytest.fixture
     def target(self):
-        mock_directive = Mock(
-            result=Mock(), state=Mock(document=Mock(settings=Mock(tab_width=4)))
+        directive = DocumenterBridge(
+            Mock(),
+            Mock(),
+            Options(),
+            15,
+            state=Mock(document=Mock(settings=Mock(tab_width=4))),
         )
-        target = sphinx.WorkflowDocumenter(mock_directive, "Test")
+        target = sphinx.WorkflowDocumenter(directive, "Test")
         target.object = sample_workflow
         target.name = "ext.test_sphinx.sample_workflow"
         return target
@@ -146,10 +150,18 @@ class TestWorkflowDocumenter:
     def test_add_directive_header(self, target):
         target.add_directive_header("")
 
-        assert target.directive.result.append.mock_calls == [
-            call(".. py:function:: ext.test_sphinx.sample_workflow", ANY),
-            call("", ANY),
-            call("**Sample workflow**", ANY),
+        assert target.directive.result.data == [
+            ".. py:function:: ext.test_sphinx.sample_workflow",
+            "",
+            "**Sample workflow**",
+        ]
+
+    def test_add_directive_header__with_no_name_option(self, target):
+        target.options["noname"] = True
+        target.add_directive_header("")
+
+        assert target.directive.result.data == [
+            ".. py:function:: ext.test_sphinx.sample_workflow",
         ]
 
     def test_get_doc(self, target):
@@ -162,6 +174,4 @@ class TestWorkflowDocumenter:
     def test_document_members(self, target):
         target.document_members()
 
-        assert target.directive.result.append.mock_calls == [
-            call("", ANY),
-        ]
+        assert target.directive.result.data == [""]

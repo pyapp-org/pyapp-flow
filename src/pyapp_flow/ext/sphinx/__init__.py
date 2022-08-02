@@ -112,6 +112,10 @@ class WorkflowDocumenter(ModuleLevelDocumenter):
     """
 
     objtype = "flow-workflow"
+    option_spec: OptionSpec = dict(
+        noname=bool_option,
+        **ModuleLevelDocumenter.option_spec,
+    )
 
     @classmethod
     def can_document_member(cls, member: Any, *_) -> bool:
@@ -130,8 +134,9 @@ class WorkflowDocumenter(ModuleLevelDocumenter):
         source_name = self.get_sourcename()
 
         self.add_line(f".. {domain}:{directive}:: {self.name}", source_name)
-        self.add_line("", source_name)
-        self.add_line(f"{self.indent}**{workflow.name}**", source_name)
+        if self.options.noname is not True:
+            self.add_line("", source_name)
+            self.add_line(f"{self.indent}**{workflow.name}**", source_name)
 
     def get_doc(self) -> Optional[List[List[str]]]:
         """
