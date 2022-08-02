@@ -16,10 +16,8 @@ def sample_step(arg_a: int, *, arg_b: str, arg_c) -> bool:
 
 
 @flow.step(name="Simple Step")
-def simple_step(arg_a: int, *, arg_b: str, arg_c):
-    """
-    This is a sample step that has no output
-    """
+def simple_step():
+    pass
 
 
 def not_a_step():
@@ -77,6 +75,13 @@ class TestStepDocumenter:
 
         assert actual == [["This is a sample step that just outputs false", ""]]
 
+    def test_get_doc__where_method_has_no_docstring(self, target):
+        target.object = simple_step
+
+        actual = target.get_doc()
+
+        assert actual == []
+
     def test_document_members(self, target):
         target.document_members()
 
@@ -94,19 +99,11 @@ class TestStepDocumenter:
             "",
         ]
 
-    def test_document_members__with_no_outputs(self, target):
+    def test_document_members__with_no_inputs_or_outputs(self, target):
         target.object = simple_step
         target.document_members()
 
-        assert target.directive.result.data == [
-            "",
-            "**Input Variable(s)**",
-            "",
-            "* *arg_a*: *int*",
-            "* *arg_b*: *str*",
-            "* *arg_c*",
-            "",
-        ]
+        assert target.directive.result.data == [""]
 
 
 sample_workflow = flow.Workflow(
