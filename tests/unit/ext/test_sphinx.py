@@ -186,7 +186,7 @@ class TestWorkflowDocumenter:
     def test_document_members(self, target):
         target.document_members()
 
-        assert target.directive.result.data == [""]
+        assert target.directive.result.data == []
 
     def test_document_members__with_nodes_option(self, target):
         target.options["nodes"] = True
@@ -195,9 +195,13 @@ class TestWorkflowDocumenter:
         assert target.directive.result.data == [
             "",
             "- Set value(s) for samples",
+            "",
             "- For (`sample`) in `samples`",
+            "",
             "  - **loop**",
+            "",
             "    - Log Message 'Reviewing sample {sample}'",
+            "",
             "- Sample Step",
         ]
 
@@ -209,6 +213,8 @@ class TestWorkflowDocumenter:
         assert target.directive.result.data == [
             "",
             "- Set value(s) for samples",
+            "",
             "- *Unknown node*",
+            "",
             "- Sample Step",
         ]

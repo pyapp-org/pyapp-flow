@@ -158,6 +158,7 @@ class WorkflowDocumenter(ModuleLevelDocumenter):
 
     def _add_nodes(self, nodes: Sequence[Navigable], source_name: str, indent: int):
         for node in nodes:
+            self.add_line("", source_name)
             if isinstance(node, Navigable):
                 self.add_line(f"{'  ' * indent}- {node.name}", source_name)
                 self._node_tree(node, source_name, indent + 1)
@@ -174,6 +175,7 @@ class WorkflowDocumenter(ModuleLevelDocumenter):
 
             else:
                 for key, nodes in branches.items():
+                    self.add_line("", source_name)
                     self.add_line(f"{'  ' * indent}- **{key}**", source_name)
                     self._add_nodes(nodes, source_name, indent + 1)
 
@@ -185,8 +187,6 @@ class WorkflowDocumenter(ModuleLevelDocumenter):
         """
         workflow = cast(flow.Workflow, self.object)
         source_name = self.get_sourcename()
-
-        self.add_line("", source_name)  # Ensure blank line
 
         if self.options.nodes:
             self._node_tree(workflow, source_name)
