@@ -1,8 +1,49 @@
 from __future__ import annotations
 
+import abc
 import logging
 from collections import deque
-from typing import Dict, Any, Type
+from typing import Dict, Any, Type, Union, Sequence, Optional
+
+Branches = Dict[str, Sequence["Navigable"]]
+
+
+class Navigable(abc.ABC):
+    @property
+    @abc.abstractmethod
+    def name(self) -> str:
+        """
+        Name of object
+        """
+
+    def branches(self) -> Optional[Branches]:
+        """
+        Branches from an object in the workflow node tree.
+        """
+
+    def __str__(self):
+        return self.name
+
+
+class State(Dict[str, Any]):
+    """
+    Wrapper around dict to support attribute accessors
+    """
+
+    def __getattr__(self, var: str) -> Any:
+        try:
+            return self[var]
+        except KeyError:
+            raise AttributeError(f"State has no attribute {var!r}") from None
+
+    def __setattr__(self, var: str, value: Any):
+        self[var] = value
+
+    def __delattr__(self, var: str):
+        try:
+            del self[var]
+        except KeyError:
+            raise AttributeError(f"State has no attribute {var!r}") from None
 
 
 class StateContext:
@@ -12,9 +53,9 @@ class StateContext:
 
     __slots__ = ("state", "_state_vector")
 
-    def __init__(self, state: Dict[str, Any]):
-        self.state = state
-        self._state_vector = deque([state])
+    def __init__(self, state: Union[State, Dict[str, Any]]):
+        self.state = State(state)
+        self._state_vector = deque([self.state])
 
     def __enter__(self):
         self.push_state()
@@ -27,7 +68,7 @@ class StateContext:
         Clone the current state so any modification doesn't affect the outer
         scope and append it to the state vector.
         """
-        self.state = dict(self.state)
+        self.state = State(self.state)
         self._state_vector.append(self.state)
 
     def pop_state(self):

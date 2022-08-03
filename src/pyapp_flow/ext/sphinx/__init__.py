@@ -1,7 +1,7 @@
 """
 Sphinx documentation generation for Steps
 """
-from typing import cast, Any, Optional, List, Iterable, Tuple, Type
+from typing import cast, Any, Optional, List, Iterable, Tuple, Type, Sequence
 
 from sphinx.ext.autodoc import ModuleLevelDocumenter, bool_option
 from sphinx.util.docstrings import prepare_docstring
@@ -9,6 +9,7 @@ from sphinx.util.inspect import getdoc
 from sphinx.util.typing import OptionSpec
 
 import pyapp_flow as flow
+from pyapp_flow import Navigable
 
 
 class StepDocumenter(ModuleLevelDocumenter):
@@ -114,6 +115,7 @@ class WorkflowDocumenter(ModuleLevelDocumenter):
     objtype = "flow-workflow"
     option_spec: OptionSpec = dict(
         noname=bool_option,
+        nodes=bool_option,
         **ModuleLevelDocumenter.option_spec,
     )
 
@@ -154,16 +156,40 @@ class WorkflowDocumenter(ModuleLevelDocumenter):
             doc.append(prepare_docstring(docstring, tab_width))
         return doc
 
+    def _add_nodes(self, nodes: Sequence[Navigable], source_name: str, indent: int):
+        for node in nodes:
+            self.add_line("", source_name)
+            if isinstance(node, Navigable):
+                self.add_line(f"{'  ' * indent}- {node.name}", source_name)
+                self._node_tree(node, source_name, indent + 1)
+            else:
+                self.add_line(f"{'  ' * indent}- *Unknown node*", source_name)
+
+    def _node_tree(self, node: Navigable, source_name: str, indent: int = 0):
+        branches = node.branches()
+        if branches:
+            (key, nodes), *_ = branches.items()
+            if len(branches) == 1 and not key:
+                # Single only branch
+                self._add_nodes(nodes, source_name, indent)
+
+            else:
+                for key, nodes in branches.items():
+                    self.add_line("", source_name)
+                    self.add_line(f"{'  ' * indent}- **{key}**", source_name)
+                    self._add_nodes(nodes, source_name, indent + 1)
+
     def document_members(self, all_members: bool = False) -> None:
         """Generate reST for member documentation.
 
         If *all_members* is True, document all members, else those given by
         *self.options.members*.
         """
-        # workflow = cast(flow.Workflow, self.object)
+        workflow = cast(flow.Workflow, self.object)
         source_name = self.get_sourcename()
 
-        self.add_line("", source_name)  # Ensure blank line
+        if self.options.nodes:
+            self._node_tree(workflow, source_name)
 
 
 def setup(app):  # pragma: no cover

@@ -1,4 +1,5 @@
 from typing import List
+from unittest.mock import ANY
 
 import pyapp_flow as flow
 
@@ -22,6 +23,19 @@ def raise_error(exception):
         raise exception
 
     return error
+
+
+basic_flow = flow.Nodes(add_args, add_message)
+
+
+class TestNodes:
+    def test_str(self):
+        assert str(basic_flow) == "Nodes"
+
+    def test_branches(self):
+        actual = basic_flow.branches()
+
+        assert actual == {"": [ANY, ANY]}
 
 
 sub_flow = flow.Workflow(name="Sub Flow").nodes(
@@ -67,20 +81,20 @@ sample_flow = (
 )
 
 
-def test_workflow():
-    actual = sample_flow.execute()
+class TestWorkflow:
+    def test_workflow(self):
+        actual = sample_flow.execute()
 
-    assert actual.state["messages"] == [
-        "single",
-        "055",
-        "sub_flow",
-        "nested",
-        "arg_1 is smaller",
-        "Error A",
-        "Error B",
-        "it's 13",
-    ]
+        assert actual.state["messages"] == [
+            "single",
+            "055",
+            "sub_flow",
+            "nested",
+            "arg_1 is smaller",
+            "Error A",
+            "Error B",
+            "it's 13",
+        ]
 
-
-def test_workflow_str():
-    assert str(sub_flow) == "Sub Flow"
+    def test_str(self):
+        assert str(sub_flow) == "Sub Flow"

@@ -6,15 +6,15 @@ from typing import (
     Iterable,
     Type,
     Hashable,
-    Mapping,
+    Optional,
 )
 
-from .datastructures import WorkflowContext
+from .datastructures import WorkflowContext, Navigable, Branches
 from .functions import extract_inputs, extract_outputs, call_nodes
 from .exceptions import FatalError, WorkflowRuntimeError
 
 
-class Step:
+class Step(Navigable):
     """
     Wrapper around a function that defines a workflow step
 
@@ -46,7 +46,7 @@ class Step:
         "func",
         "inputs",
         "outputs",
-        "name",
+        "_name",
         "ignore_exceptions",
         "context_var",
     )
@@ -59,7 +59,7 @@ class Step:
         ignore_exceptions: Union[Type[Exception], Sequence[Type[Exception]]] = None,
     ):
         self.func = func
-        self.name = name or func.__name__.replace("_", " ")
+        self._name = name or func.__name__.replace("_", " ").title()
         self.ignore_exceptions = ignore_exceptions
 
         self.inputs, self.context_var = extract_inputs(func)
@@ -97,8 +97,9 @@ class Step:
 
             return results
 
-    def __str__(self):
-        return self.name
+    @property
+    def name(self) -> str:
+        return self._name
 
 
 def step(
@@ -118,7 +119,7 @@ def step(
     return decorator(func) if func else decorator
 
 
-class SetVar:
+class SetVar(Navigable):
     """
     Set context variable to specified values
 
@@ -151,11 +152,12 @@ class SetVar:
         )
         context.state.update(values)
 
-    def __str__(self):
+    @property
+    def name(self):
         return f"Set value(s) for {', '.join(self.values)}"
 
 
-class Append:
+class Append(Navigable):
     """
     Append a message to a list.
 
@@ -186,11 +188,12 @@ class Append:
         except KeyError:
             context.state[self.target_var] = [message]
 
-    def __str__(self):
+    @property
+    def name(self):
         return f"Append {self.message!r} to {self.target_var}"
 
 
-class CaptureErrors:
+class CaptureErrors(Navigable):
     """
     Capture and store any exceptions raised by node(s) within the capture block
     to a variable within the context.
@@ -235,8 +238,12 @@ class CaptureErrors:
                     if not self.try_all:
                         break
 
-    def __str__(self):
+    @property
+    def name(self):
         return f"Capture errors into `{self.target_var}`"
+
+    def branches(self) -> Optional[Branches]:
+        return {"": tuple(self._nodes)}
 
     def nodes(self, *nodes):
         """
@@ -246,7 +253,7 @@ class CaptureErrors:
         return self
 
 
-class Conditional:
+class Conditional(Navigable):
     """
     Branch a workflow based on a condition, analogous with an if statement
 
@@ -289,11 +296,16 @@ class Conditional:
         condition = self.condition(context)
         context.info("🔀 Condition is %s", condition)
 
-        if nodes := (self._true_nodes if condition else self._false_nodes):
+        nodes = self._true_nodes if condition else self._false_nodes
+        if nodes:
             call_nodes(context, nodes)
 
-    def __str__(self):
+    @property
+    def name(self):
         return f"Conditional branch"
+
+    def branches(self) -> Optional[Branches]:
+        return {"true": self._true_nodes, "false": self._false_nodes}
 
     def true(self, *nodes: Callable) -> "Conditional":
         """
@@ -313,7 +325,7 @@ class Conditional:
 If = Conditional
 
 
-class Switch:
+class Switch(Navigable):
     """
     Branch a workflow into one of multiple subprocesses, analogous with a
     switch statement found in many languages or with Python a dict lookup with
@@ -362,8 +374,15 @@ class Switch:
 
         call_nodes(context, branch)
 
-    def __str__(self):
+    @property
+    def name(self):
         return f"Switch into {', '.join(self._options)}"
+
+    def branches(self) -> Optional[Branches]:
+        branches = {str(case): nodes for case, nodes in self._options.items()}
+        if self._default:
+            branches["*DEFAULT*"] = self._default
+        return branches
 
     def case(self, key: Hashable, *nodes: Callable) -> "Switch":
         """
@@ -380,7 +399,7 @@ class Switch:
         return self
 
 
-class LogMessage:
+class LogMessage(Navigable):
     """
     Print a message to log with optional level.
 
@@ -407,11 +426,12 @@ class LogMessage:
         message = context.format(self.message)
         context.log(self.level, message)
 
-    def __str__(self):
+    @property
+    def name(self):
         return f"Log Message {self.message!r}"
 
 
-class ForEach:
+class ForEach(Navigable):
     """
     For each loop to iterate through a set of values and call a set of nodes
     on each value; analogous with a for loop this node will iterate through a
@@ -473,9 +493,13 @@ class ForEach:
                 self._update_context(value, context)
                 call_nodes(context, self._nodes)
 
-    def __str__(self):
+    @property
+    def name(self):
         target_vars = ", ".join(f"`{var}`" for var in self.target_vars)
         return f"For ({target_vars}) in `{self.in_var}`"
+
+    def branches(self) -> Optional[Branches]:
+        return {"loop": self._nodes}
 
     def loop(self, *nodes: Callable) -> "ForEach":
         """

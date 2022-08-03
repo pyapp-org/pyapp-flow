@@ -100,8 +100,11 @@ And the Sphinx/ReStructuredText required to generate documentation:
 And the resulting documentation:
 
   .. autoflow-workflow:: docs_example.library.report_books_workflow
+     :nodes:
 
 Options
 ~~~~~~~
+
+The ``nodes`` includes a tree of nodes that make up the workflow.
 
 The ``noname`` option prevents the workflow name from being included in documented output.
