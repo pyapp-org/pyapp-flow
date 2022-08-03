@@ -1,5 +1,6 @@
 import logging
 from typing import Tuple
+from unittest.mock import ANY
 
 import pytest
 
@@ -32,7 +33,7 @@ class TestStep:
     def test_init__generates_correct_name(self):
         actual = nodes.Step(valid_step_a, output="arg_t")
 
-        assert str(actual) == "valid step a"
+        assert str(actual) == "Valid Step A"
 
     def test_init__uses_assigned_name(self):
         actual = nodes.Step(valid_step_a, name="Custom name", output="arg_t")
@@ -86,21 +87,21 @@ class TestAppend:
 
         context = call_node(target, messages=["foo"])
 
-        assert context.state["messages"] == ["foo", "bar"]
+        assert context.state.messages == ["foo", "bar"]
 
     def test_call__with_no_variable(self):
         target = nodes.Append(target_var="messages", message="bar")
 
         context = call_node(target)
 
-        assert context.state["messages"] == ["bar"]
+        assert context.state.messages == ["bar"]
 
     def test_call__with_formatting(self):
         target = nodes.Append(target_var="messages", message="{who}bar")
 
         context = call_node(target, who="foo")
 
-        assert context.state["messages"] == ["foobar"]
+        assert context.state.messages == ["foobar"]
 
     def test_str(self):
         target = nodes.Append(target_var="messages", message="bar")
@@ -141,7 +142,7 @@ class TestForEach:
             var_b=[],
         )
 
-        assert context.state["var_a"] == context.state["var_b"]
+        assert context.state.var_a == context.state.var_b
 
     def test_call__in_var_is_missing(self):
         target = nodes.ForEach("char", in_var="var_a").loop(
@@ -165,7 +166,7 @@ class TestForEach:
 
         context = call_node(target, var_a=[("a", 1), ("b", 2), ("c", 3)], var_b=[])
 
-        assert context.state["var_b"] == [1, 2, 3]
+        assert context.state.var_b == [1, 2, 3]
 
     def test_call__in_var_is_multiple_string(self):
         target = nodes.ForEach("key_a, key_b", in_var="var_a",).loop(
@@ -178,7 +179,7 @@ class TestForEach:
             var_b=[],
         )
 
-        assert context.state["var_b"] == [1, 2, 3]
+        assert context.state.var_b == [1, 2, 3]
 
     def test_call__in_var_is_multiple_parts_not_iterable(self):
         target = nodes.ForEach(("key_a", "key_b"), in_var="var_a",).loop(
@@ -201,6 +202,17 @@ class TestForEach:
         )
 
         assert str(target) == "For (`key_a`, `key_b`) in `var_a`"
+
+    def test_branches(self):
+        target = nodes.ForEach(("key_a", "key_b"), in_var="var_a").loop(
+            nodes.Step(lambda char, var_b: var_b.append(char)),
+        )
+
+        actual = target.branches()
+
+        assert actual == {
+            "loop": (ANY,),
+        }
 
 
 class TestCaptureErrors:
@@ -237,6 +249,17 @@ class TestCaptureErrors:
         target = nodes.CaptureErrors("errors").nodes(nodes.LogMessage("foo"))
 
         assert str(target) == "Capture errors into `errors`"
+
+    def test_branches(self):
+        target = nodes.CaptureErrors("errors", try_all=False).nodes(
+            nodes.LogMessage("foo"),
+            nodes.Step(valid_raise_exception),
+            nodes.Step(valid_raise_exception),
+        )
+
+        actual = target.branches()
+
+        assert actual == {"": (ANY, ANY, ANY)}
 
 
 class TestConditional:
@@ -283,6 +306,15 @@ class TestConditional:
 
         assert context.state["message"] == ["False"]
 
+    def test_call__branch_no_nodes(self):
+        target = nodes.Conditional(lambda ctx: False).true(
+            nodes.Append("message", "True")
+        )
+
+        context = call_node(target)
+
+        assert "message" not in context.state
+
     def test_call__invalid_conditional(self):
         with pytest.raises(TypeError):
             nodes.Conditional(None)
@@ -291,6 +323,20 @@ class TestConditional:
         target = nodes.Conditional("foo")
 
         assert str(target) == "Conditional branch"
+
+    def test_branches(self):
+        target = (
+            nodes.Conditional(lambda ctx: False)
+            .true(nodes.Append("message", "True"))
+            .false(nodes.Append("message", "False"))
+        )
+
+        actual = target.branches()
+
+        assert actual == {
+            "true": (ANY,),
+            "false": (ANY,),
+        }
 
 
 class TestSwitch:
@@ -339,6 +385,25 @@ class TestSwitch:
 
     def test_str(self, target):
         assert str(target) == "Switch into foo, bar"
+
+    def test_branches(self, target):
+        actual = target.branches()
+
+        assert actual == {
+            "bar": (ANY, ANY),
+            "foo": (ANY, ANY),
+        }
+
+    def test_branches__with_default(self, target):
+        target.default(nodes.LogMessage("default called"))
+
+        actual = target.branches()
+
+        assert actual == {
+            "bar": (ANY, ANY),
+            "foo": (ANY, ANY),
+            "*DEFAULT*": (ANY,),
+        }
 
 
 class TestLogMessage:

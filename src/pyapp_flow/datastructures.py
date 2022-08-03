@@ -1,8 +1,28 @@
 from __future__ import annotations
 
+import abc
 import logging
 from collections import deque
-from typing import Dict, Any, Type, Union
+from typing import Dict, Any, Type, Union, Sequence, Optional
+
+Branches = Dict[str, Sequence["Navigable"]]
+
+
+class Navigable(abc.ABC):
+    @property
+    @abc.abstractmethod
+    def name(self) -> str:
+        """
+        Name of object
+        """
+
+    def branches(self) -> Optional[Branches]:
+        """
+        Branches from an object in the workflow node tree.
+        """
+
+    def __str__(self):
+        return self.name
 
 
 class State(Dict[str, Any]):
