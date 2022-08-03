@@ -5,6 +5,48 @@ import pytest
 from pyapp_flow import datastructures
 
 
+class TestState:
+    def test_set_attr__where_var_is_new(self):
+        target = datastructures.State(var_a=1, var_b=2)
+
+        target.var_c = 3
+
+        assert target == {"var_a": 1, "var_b": 2, "var_c": 3}
+
+    def test_set_attr__where_var_exists(self):
+        target = datastructures.State(var_a=1, var_b=2)
+
+        target.var_a = 2
+
+        assert target == {"var_a": 2, "var_b": 2}
+
+    def test_get_attr__where_var_exists(self):
+        target = datastructures.State(var_a=1, var_b=2)
+
+        actual = target.var_b
+
+        assert actual == 2
+
+    def test_get_attr__where_var_missing(self):
+        target = datastructures.State(var_a=1, var_b=2)
+
+        with pytest.raises(AttributeError):
+            target.var_c
+
+    def test_del_attr__where_var_exists(self):
+        target = datastructures.State(var_a=1, var_b=2)
+
+        del target.var_b
+
+        assert target == {"var_a": 1}
+
+    def test_del_attr__where_var_missing(self):
+        target = datastructures.State(var_a=1, var_b=2)
+
+        with pytest.raises(AttributeError):
+            del target.var_c
+
+
 class TestWorkflowContext:
     @pytest.mark.parametrize(
         "message, expected",
@@ -27,24 +69,24 @@ class TestWorkflowContext:
     def test_state(self):
         target = datastructures.WorkflowContext(var_a=1, var_b=2)
 
-        target.state["var_c"] = 3
+        target.state.var_c = 3
 
         assert target.state == {"var_a": 1, "var_b": 2, "var_c": 3}
         assert target.depth == 1
 
         # Enter nested scope
         target.push_state()
-        target.state["var_a"] = 2
+        target.state.var_a = 2
         del target.state["var_b"]
-        target.state["var_d"] = 4
+        target.state.var_d = 4
 
         assert target.state == {"var_a": 2, "var_c": 3, "var_d": 4}
         assert target.depth == 2
 
         # Enter nested scope
         target.push_state()
-        target.state["var_b"] = 2
-        target.state["var_a"] = 1
+        target.state.var_b = 2
+        target.state.var_a = 1
 
         assert target.state == {"var_a": 1, "var_c": 3, "var_d": 4, "var_b": 2}
         assert target.depth == 3
