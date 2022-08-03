@@ -117,6 +117,12 @@ sample_workflow = flow.Workflow(
     sample_step,
 )
 
+basic_workflow = flow.Workflow(name="Basic workflow").nodes(
+    flow.SetVar(samples=lambda ctx: ctx.state.a.title()),
+    (lambda ctx: ctx.info("Technically valid!")),
+    sample_step,
+)
+
 not_a_workflow = object()
 
 
@@ -171,7 +177,38 @@ class TestWorkflowDocumenter:
             ["This is a sample workflow that just runs a simple operation", ""]
         ]
 
+    def test_get_doc__with_no_doc(self, target):
+        target.object = basic_workflow
+        actual = target.get_doc()
+
+        assert actual == []
+
     def test_document_members(self, target):
         target.document_members()
 
         assert target.directive.result.data == [""]
+
+    def test_document_members__with_nodes_option(self, target):
+        target.options["nodes"] = True
+        target.document_members()
+
+        assert target.directive.result.data == [
+            "",
+            "- Set value(s) for samples",
+            "- For (`sample`) in `samples`",
+            "  - **loop**",
+            "    - Log Message 'Reviewing sample {sample}'",
+            "- Sample Step",
+        ]
+
+    def test_document_members__with_nodes_option_and_a_non_navigable(self, target):
+        target.object = basic_workflow
+        target.options["nodes"] = True
+        target.document_members()
+
+        assert target.directive.result.data == [
+            "",
+            "- Set value(s) for samples",
+            "- *Unknown node*",
+            "- Sample Step",
+        ]
