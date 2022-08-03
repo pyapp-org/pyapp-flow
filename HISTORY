@@ -5,6 +5,12 @@ Changes
 -------
 
 - `WorkflowContext.state` variables can now be accessed as attributes
+- Add `Navigable` ABC to all workflow items to aid in documentation
+
+Sphinx Extension
+----------------
+
+- Workflow documentor can now generate the workflow node tree
 
 
 0.7.0
@@ -19,6 +25,7 @@ Sphinx Extension
 ----------------
 
 - Step autodoc will now:
+
   - Add ``noname`` option to stop name being included in step and workflow
   - Hide input section if there are no inputs
   - Hide output section if there are no outputs
