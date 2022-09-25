@@ -245,6 +245,23 @@ class TestCaptureErrors:
 
         assert [str(e) for e in context.state["errors"]] == ["'Boom!'", "'Boom!'"]
 
+    def test_call__match_specified_exception(self):
+        context = call_node(
+            nodes.CaptureErrors("errors", except_types=KeyError).nodes(
+                nodes.Step(valid_raise_exception),
+            )
+        )
+
+        assert [str(e) for e in context.state.errors] == ["'Boom!'"]
+
+    def test_call__not_match_specified_exception(self):
+        with pytest.raises(KeyError):
+            call_node(
+                nodes.CaptureErrors("errors", except_types=(ValueError,)).nodes(
+                    nodes.Step(valid_raise_exception),
+                )
+            )
+
     def test_str(self):
         target = nodes.CaptureErrors("errors").nodes(nodes.LogMessage("foo"))
 

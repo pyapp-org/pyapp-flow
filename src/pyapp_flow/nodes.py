@@ -216,13 +216,21 @@ class CaptureErrors(Navigable):
 
     __slots__ = ("target_var", "_nodes", "try_all")
 
-    def __init__(self, target_var: str, try_all: bool = True):
+    def __init__(
+        self,
+        target_var: str,
+        try_all: bool = True,
+        *,
+        except_types: Union[type, Sequence[type]] = None,
+    ):
         self.target_var = target_var
+        self.except_types = except_types
         self._nodes = []
         self.try_all = try_all
 
     def __call__(self, context: WorkflowContext):
         context.info("🥅 %s", self)
+        except_types = self.except_types
 
         try:
             var = context.state[self.target_var]
@@ -234,6 +242,8 @@ class CaptureErrors(Navigable):
                 try:
                     node(context)
                 except Exception as ex:
+                    if except_types and not isinstance(ex, except_types):
+                        raise
                     var.append(ex)
                     if not self.try_all:
                         break
