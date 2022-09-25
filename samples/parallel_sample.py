@@ -3,20 +3,27 @@ import random
 import time
 
 import pyapp_flow as flow
-from pyapp_flow.parallel_nodes import ParallelForEach
+from pyapp_flow.parallel_nodes import MapNodes
 
 
-@flow.step
-def report_value(value: str):
-    time.sleep(random.randint(1, 4))
+@flow.step(output="foo")
+def report_value(value: str) -> str:
+    delay = random.randint(1, 4)
+    time.sleep(delay)
+    if delay == 5:
+        raise ValueError("EEK!")
     print(value)
+    return value
 
 
 parallel_print = flow.Workflow(name="parallel flow",).nodes(
     flow.SetVar(
         values=["abc", "def", "ghi", "jkl", "mno", "pqr"],
     ),
-    ParallelForEach("value", in_var="values").loop("parallel_sample:report_value"),
+    MapNodes("value", in_var="values", merge_var="foo").loop(
+        "parallel_sample:report_value"
+    ),
+    flow.LogMessage("Result: {foo}"),
 )
 
 
