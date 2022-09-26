@@ -1,29 +1,35 @@
 import logging
-import random
-import time
+from pathlib import Path
+from typing import Sequence, Tuple
 
 import pyapp_flow as flow
-from pyapp_flow.parallel_nodes import MapNodes
+from pyapp_flow.parallel_nodes import MapNode
+
+HERE = Path(__file__).parent
 
 
-@flow.step(output="foo")
-def report_value(value: str) -> str:
-    delay = random.randint(1, 4)
-    time.sleep(delay)
-    if delay == 5:
-        raise ValueError("EEK!")
-    print(value)
-    return value
+@flow.step(output="files")
+def iterate_files() -> Sequence[Path]:
+    folder = HERE.parent / "src/pyapp_flow"
+    return [entry for entry in folder.iterdir() if entry.is_file()]
+
+
+@flow.step(name="Count lines in {file.name}", output="file_sizes")
+def count_lines(file: Path) -> Tuple[Path, int]:
+    return (file, len(file.read_text().splitlines()))
+
+
+@flow.step
+def print_results(file_sizes: Sequence[Tuple[Path, int]]):
+    print("\n".join(f"{f.name}: {lc}" for f, lc in file_sizes))
 
 
 parallel_print = flow.Workflow(name="parallel flow",).nodes(
-    flow.SetVar(
-        values=["abc", "def", "ghi", "jkl", "mno", "pqr"],
+    iterate_files,
+    MapNode("file", in_var="files", merge_var="file_sizes").loop(
+        "parallel_sample:count_lines"
     ),
-    MapNodes("value", in_var="values", merge_var="foo").loop(
-        "parallel_sample:report_value"
-    ),
-    flow.LogMessage("Result: {foo}"),
+    print_results,
 )
 
 
