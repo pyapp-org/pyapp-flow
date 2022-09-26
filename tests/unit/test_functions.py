@@ -6,6 +6,21 @@ from pyapp_flow import functions, WorkflowContext
 from pyapp_flow.exceptions import WorkflowSetupError
 
 
+@pytest.mark.parametrize(
+    "var_names, expected",
+    (
+        ("foo", ["foo"]),
+        ("foo,bar", ["foo", "bar"]),
+        ("foo , bar", ["foo", "bar"]),
+        (["foo", "bar"], ["foo", "bar"]),
+    ),
+)
+def test_var_list(var_names, expected):
+    actual = functions.var_list(var_names)
+
+    assert actual == expected
+
+
 def valid_a(context: WorkflowContext):
     pass
 
@@ -70,6 +85,7 @@ def test_extract_inputs__where_args_are_valid(func, expected):
         (valid_e, ("var_a",), (("var_a", int),)),
         (valid_f, "var_b", (("var_b", str),)),
         (valid_f, ("var_b",), (("var_b", str),)),
+        (valid_g, "var_a", (("var_a", Tuple[str, int]),)),
         (valid_g, ("var_a", "var_b"), (("var_a", str), ("var_b", int))),
     ),
 )
@@ -110,7 +126,6 @@ def test_extract_inputs__where_args_are_invalid(func, expected):
         (valid_f, None),
         (valid_f, ("a", "b")),
         (valid_g, None),
-        (valid_g, "a"),
         (valid_g, ("a", "b", "c")),
     ),
 )

@@ -4,6 +4,15 @@ from .datastructures import WorkflowContext
 from .exceptions import WorkflowSetupError
 
 
+def var_list(var_names: Union[str, Sequence[str]]) -> Sequence[str]:
+    """
+    Split a comma separated list of var names into individual names.
+    """
+    if isinstance(var_names, str):
+        var_names = var_names.split(",")
+    return [name.strip() for name in var_names]
+
+
 def extract_inputs(func: Callable) -> Tuple[Mapping[str, type], str]:
     """
     Extract input variables from function
@@ -50,16 +59,18 @@ def extract_outputs(
     types = func.__annotations__.get("return")
 
     # Ensure names is a list
+    is_singular = False
     if names is None:
         names = ()
-    if isinstance(names, str):
-        names = (names,)
+    elif isinstance(names, str):
+        names = var_list(names)
+        is_singular = len(names) == 1
 
     # Ensure types is a list
     if types is None:
         types = ()
     elif getattr(types, "_name", None) == "Tuple":
-        types = types.__args__
+        types = (types,) if is_singular else types.__args__
     else:
         types = (types,)
 

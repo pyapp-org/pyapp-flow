@@ -7,10 +7,11 @@ from typing import (
     Type,
     Hashable,
     Optional,
+    Any,
 )
 
 from .datastructures import WorkflowContext, Navigable, Branches
-from .functions import extract_inputs, extract_outputs, call_nodes
+from .functions import extract_inputs, extract_outputs, call_nodes, var_list
 from .exceptions import FatalError, WorkflowRuntimeError
 
 
@@ -140,7 +141,7 @@ class SetVar(Navigable):
 
     def __init__(
         self,
-        **values: Union[object, Callable[[WorkflowContext], object]],
+        **values: Union[Any, Callable[[WorkflowContext], Any]],
     ):
         self.values = values
 
@@ -477,9 +478,7 @@ class ForEach(Navigable):
     __slots__ = ("target_vars", "in_var", "_nodes", "_update_context")
 
     def __init__(self, target_vars: Union[str, Sequence[str]], in_var: str):
-        if isinstance(target_vars, str):
-            target_vars = [var.strip() for var in target_vars.split(",")]
-        self.target_vars = target_vars
+        self.target_vars = target_vars = var_list(target_vars)
         self.in_var = in_var
         self._nodes = []
 
