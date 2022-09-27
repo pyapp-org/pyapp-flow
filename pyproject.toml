@@ -28,6 +28,10 @@ include = ["HISTORY"]
 [tool.poetry.dependencies]
 python = "^3.8"
 rich = "^12.4.4"
+pyapp = {version = "^4.10", optional = true }
+
+[tool.poetry.extras]
+pyapp = ["pyapp"]
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.3"
