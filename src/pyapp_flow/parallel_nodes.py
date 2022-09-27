@@ -2,13 +2,19 @@
 Parallel Nodes
 """
 import importlib
-import itertools
+import enum
 from functools import cached_property
 from multiprocessing import Pool
-from typing import Optional, Callable, Iterable, Any, Dict, Tuple, Sequence
+from typing import Optional, Callable, Iterable, Any, Dict, Tuple, Sequence, Union
 
 from pyapp_flow import Navigable, WorkflowContext, Branches
-from pyapp_flow.exceptions import WorkflowRuntimeError
+from pyapp_flow.exceptions import WorkflowRuntimeError, FatalError
+from pyapp_flow.functions import merge_nested_entries
+
+
+class MergeMethod(enum.Enum):
+    Append = "append"
+    Extend = "extend"
 
 
 def import_node(node_id: str) -> Callable[[WorkflowContext], Any]:
@@ -24,9 +30,12 @@ def _call_parallel_node(args: Tuple[str, Sequence[str], Dict[str, Any]]):
     """
     Wrapper to call parallel nodes
     """
-    # Decode args and import node
     node_id, return_vars, context_data = args
-    node = import_node(node_id)
+
+    try:
+        node = import_node(node_id)
+    except (AttributeError, ImportError) as ex:
+        raise FatalError(f"Unable to import parallel node: {ex}")
 
     # Generate context and call node
     context = WorkflowContext(**context_data)
@@ -34,7 +43,7 @@ def _call_parallel_node(args: Tuple[str, Sequence[str], Dict[str, Any]]):
 
     # Generate return values from context
     state = context.state
-    return [state[var] for var in return_vars]
+    return tuple(state[var] for var in return_vars)
 
 
 class _ParallelNode:
@@ -49,9 +58,12 @@ class _ParallelNode:
     def _map_to_pool(
         self,
         node_id: str,
-        return_vars: Sequence[str],
         context_iter: Iterable[Dict[str, Any]],
+        return_vars: Sequence[str],
     ) -> Sequence[Any]:
+        """
+        Map and iterable of context entries into a node using a parallel worker pool
+        """
         return self._pool.map(
             _call_parallel_node,
             ((node_id, return_vars, context_data) for context_data in context_iter),
@@ -59,7 +71,7 @@ class _ParallelNode:
 
     @cached_property
     def _pool(self):
-        return Pool()
+        return self.pool_type()
 
 
 class MapNode(Navigable, _ParallelNode):
@@ -76,9 +88,6 @@ class MapNode(Navigable, _ParallelNode):
         a sequence of strings.
     :param in_var: Context variable containing a sequence of values to be iterated
         over.
-    :param merge_var: Context variable containing resulting value to be combined
-        into a result list (the order of this list is not guaranteed is determined
-        by the completion order of each sub-process).
 
     .. code-block:: python
 
@@ -90,18 +99,19 @@ class MapNode(Navigable, _ParallelNode):
 
         # Mapping with merge variable
         (
-            MapNodes("message", in_var="messages", merge_var="results")
+            MapNodes("message", in_var="messages")
             .loop("namespace:node_name")
+            .merge_var("results")
         )
 
     """
 
-    __slots__ = ("target_var", "in_var", "merge_var", "_node_id")
+    __slots__ = ("target_var", "in_var", "_merge_vars", "_node_id")
 
-    def __init__(self, target_var: str, in_var: str, *, merge_var: str = None):
+    def __init__(self, target_var: str, in_var: str):
         self.target_var = target_var
         self.in_var = in_var
-        self.merge_var = merge_var
+        self._merge_vars = []
         self._node_id = None
 
     def __call__(self, context: WorkflowContext):
@@ -115,18 +125,20 @@ class MapNode(Navigable, _ParallelNode):
             raise WorkflowRuntimeError(f"Variable {self.in_var} is not iterable")
 
         if self._node_id:
-            result_vars = [self.merge_var] if self.merge_var else []
-
+            result_vars = [name for name, _ in self._merge_vars]
             results = self._map_to_pool(
                 self._node_id,
-                result_vars,
                 ({self.target_var: value} for value in iterable),
+                result_vars,
             )
-
-    def _get_pool(self):
-        if not self._process_pool:
-            self._process_pool = Pool()
-        return self._process_pool
+            context.state.update(
+                zip(
+                    result_vars,
+                    merge_nested_entries(
+                        results, [merge for _, merge in self._merge_vars]
+                    ),
+                )
+            )
 
     @property
     def name(self):
@@ -135,9 +147,27 @@ class MapNode(Navigable, _ParallelNode):
     def branches(self) -> Optional[Branches]:
         return {"loop": [self._node_id]}
 
-    def loop(self, node_id: str) -> "MapNode":
+    def loop(self, node: str) -> "MapNode":
         """
         Nodes to call on each iteration of the foreach block
         """
-        self._node_id = node_id
+        self._node_id = node
+        return self
+
+    def merge_vars(self, *merge_vars: Union[str, Tuple[str, MergeMethod]]) -> "MapNode":
+        """
+        Vars to merge back from parallel execution.
+
+        These can optionally take a merge method to defined how the variables
+        are merged; the default is ``append`` which will append each variable
+        into a list. The other option is ``extend`` which allows for lists of
+        results to be combined into a single list.
+        """
+
+        self._merge_vars = _merge_vars = []
+        for merge_var in merge_vars:
+            if isinstance(merge_var, str):
+                _merge_vars.append((merge_var, MergeMethod.Append.value))
+            else:
+                _merge_vars.append((merge_var[0], merge_var[1].value))
         return self

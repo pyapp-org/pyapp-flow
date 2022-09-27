@@ -26,8 +26,10 @@ def print_results(file_sizes: Sequence[Tuple[Path, int]]):
 
 parallel_print = flow.Workflow(name="parallel flow",).nodes(
     iterate_files,
-    MapNode("file", in_var="files", merge_var="file_sizes").loop(
-        "parallel_sample:count_lines"
+    (
+        MapNode("file", in_var="files")
+        .loop("parallel_sample:count_lines")
+        .merge_vars("file_sizes")
     ),
     print_results,
 )
