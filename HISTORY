@@ -1,3 +1,12 @@
+0.10.0
+======
+
+Changes
+-------
+
+- Support pyApp constructs
+
+
 0.9.0
 =====
 
@@ -8,6 +17,7 @@ Changes
 - `CaptureErrors` node can now specify specific exception types
 - Early version of parallel nodes (using multiprocessing), this version has some
   caveats relating to what can be passed into a parallel execution.
+
 
 0.8.0
 =====
