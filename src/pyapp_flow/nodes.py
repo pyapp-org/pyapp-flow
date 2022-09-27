@@ -8,11 +8,17 @@ from typing import (
     Hashable,
     Optional,
     Any,
+    Protocol,
 )
 
 from .datastructures import WorkflowContext, Navigable, Branches
 from .functions import extract_inputs, extract_outputs, call_nodes, var_list
 from .exceptions import FatalError, WorkflowRuntimeError
+
+
+class Node(Protocol):
+    def __call__(self, context: WorkflowContext) -> Any:
+        ...
 
 
 class Step(Navigable):
@@ -93,7 +99,7 @@ class Step(Navigable):
             if self.outputs:
                 # Helper so a simple return can be used for a single result
                 values = (results,) if len(self.outputs) == 1 else results
-                for name, value in zip([name for name, _ in self.outputs], values):
+                for name, value in zip((output[0] for output in self.outputs), values):
                     context.state[name] = value
 
             return results
@@ -256,7 +262,7 @@ class CaptureErrors(Navigable):
     def branches(self) -> Optional[Branches]:
         return {"": tuple(self._nodes)}
 
-    def nodes(self, *nodes):
+    def nodes(self, *nodes: Node):
         """
         Add additional nodes
         """
@@ -318,14 +324,14 @@ class Conditional(Navigable):
     def branches(self) -> Optional[Branches]:
         return {"true": self._true_nodes, "false": self._false_nodes}
 
-    def true(self, *nodes: Callable) -> "Conditional":
+    def true(self, *nodes: Node) -> "Conditional":
         """
         Nodes to use for the true branch
         """
         self._true_nodes = nodes
         return self
 
-    def false(self, *nodes: Callable) -> "Conditional":
+    def false(self, *nodes: Node) -> "Conditional":
         """
         Nodes to use for the false branch
         """
@@ -395,14 +401,14 @@ class Switch(Navigable):
             branches["*DEFAULT*"] = self._default
         return branches
 
-    def case(self, key: Hashable, *nodes: Callable) -> "Switch":
+    def case(self, key: Hashable, *nodes: Node) -> "Switch":
         """
         Key used to match branch and the nodes that make up the branch
         """
         self._options[key] = nodes
         return self
 
-    def default(self, *nodes: Callable) -> "Switch":
+    def default(self, *nodes: Node) -> "Switch":
         """
         If a case key is not matched use these nodes as the default branch.
         """
@@ -510,7 +516,7 @@ class ForEach(Navigable):
     def branches(self) -> Optional[Branches]:
         return {"loop": self._nodes}
 
-    def loop(self, *nodes: Callable) -> "ForEach":
+    def loop(self, *nodes: Node) -> "ForEach":
         """
         Nodes to call on each iteration of the foreach block
         """

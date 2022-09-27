@@ -1,12 +1,13 @@
 """
 Application Workflow
 """
-from typing import Callable, Optional
+from typing import Optional
 
 from . import exceptions
 from .datastructures import WorkflowContext, Navigable, Branches
 from .functions import extract_inputs
 from .nodes import (
+    Node,
     step,
     Step,
     SetVar,
@@ -27,7 +28,7 @@ class Nodes(Navigable):
 
     __slots__ = ("_nodes",)
 
-    def __init__(self, *nodes_):
+    def __init__(self, *nodes_: Node):
         self._nodes = list(nodes_)
 
     def __call__(self, context: WorkflowContext):
@@ -88,7 +89,7 @@ class Workflow(Nodes):
         self._execute(context)
         return context
 
-    def nodes(self, *nodes_: Callable) -> "Workflow":
+    def nodes(self, *nodes_: Node) -> "Workflow":
         """
         Append additional node(s) into the node list
 
@@ -99,7 +100,7 @@ class Workflow(Nodes):
         self._nodes.extend(nodes_)
         return self
 
-    def nested(self, *nodes_: Callable) -> "Workflow":
+    def nested(self, *nodes_: Node) -> "Workflow":
         """
         Add nested node(s), nested nodes have their own scope
 
