@@ -134,3 +134,11 @@ def test_extract_outputs__where_args_are_invalid(func, names):
         WorkflowSetupError, match="Name count does not match type count."
     ):
         functions.extract_outputs(func, names)
+
+
+def test_merge_nested_entries():
+    data = [[1, 2, [3]], [4, 5, [6, 7]]]
+
+    actual = functions.merge_nested_entries(data, ["append", "append", "extend"])
+
+    assert actual == ([1, 4], [2, 5], [3, 6, 7])

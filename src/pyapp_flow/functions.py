@@ -1,4 +1,4 @@
-from typing import Callable, Mapping, Tuple, Sequence, Union
+from typing import Callable, Mapping, Tuple, Sequence, Union, Iterable
 
 from .datastructures import WorkflowContext
 from .exceptions import WorkflowSetupError
@@ -86,3 +86,25 @@ def call_nodes(context: WorkflowContext, nodes: Sequence[Callable]):
     """
     for node in nodes:
         node(context)
+
+
+def merge_nested_entries(
+    iterable: Iterable[list], merge_methods: Sequence[str]
+) -> Sequence[list]:
+    """
+    Rotate and combine rows of data
+
+    >>> merge_nested_entries([[1, 2, [3]], [4, 5, [6, 7]]], ("append", "append", "extend"))
+    ... [[1, 4], [2, 5], [3, 6, 7]]
+
+    """
+    results = tuple([] for _ in merge_methods)
+    merge_methods = tuple(
+        getattr(result, method) for result, method in zip(results, merge_methods)
+    )
+
+    for entry in iterable:
+        for value, merge_method in zip(entry, merge_methods):
+            merge_method(value)
+
+    return results
