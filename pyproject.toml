@@ -27,7 +27,7 @@ include = ["HISTORY"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
-rich = "^12.4.4"
+rich = ">=12.4.4,<14.0.0"
 pyapp = {version = "^4.10", optional = true }
 
 [tool.poetry.extras]
