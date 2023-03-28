@@ -26,12 +26,10 @@ def import_node(node_id: str) -> Callable[[WorkflowContext], Any]:
     return getattr(module, func)
 
 
-def _call_parallel_node(args: Tuple[str, Sequence[str], Dict[str, Any]]):
+def _call_parallel_node(node_id, context_data, return_vars):
     """
     Wrapper to call parallel nodes
     """
-    node_id, return_vars, context_data = args
-
     try:
         node = import_node(node_id)
     except (AttributeError, ImportError) as ex:
@@ -64,9 +62,9 @@ class _ParallelNode:
         """
         Map and iterable of context entries into a node using a parallel worker pool
         """
-        return self._pool.map(
+        return self._pool.starmap(
             _call_parallel_node,
-            ((node_id, return_vars, context_data) for context_data in context_iter),
+            ((node_id, context_data, return_vars) for context_data in context_iter),
         )
 
     @cached_property
