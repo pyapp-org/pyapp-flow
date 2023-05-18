@@ -29,6 +29,7 @@ class Nodes(Navigable):
     __slots__ = ("_nodes",)
 
     def __init__(self, *nodes_: Node):
+        """Initialise nodes."""
         self._nodes = list(nodes_)
 
     def __call__(self, context: WorkflowContext):
@@ -40,6 +41,7 @@ class Nodes(Navigable):
         return "Nodes"
 
     def branches(self) -> Optional[Branches]:
+        """Return branches for this node."""
         return {"": self._nodes}
 
     def _execute(self, context: WorkflowContext):
@@ -79,6 +81,7 @@ class Workflow(Nodes):
         Execute workflow. This is the main way to trigger a work flow
 
         :param context: Optional context; a new one will be created if not supplied.
+        :param dry_run: Flag used to skip steps that have side effects.
         :param context_vars: Key/Value pairs to initialise the context with.
         :return: The context used to execute the workflow
 

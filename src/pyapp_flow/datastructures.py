@@ -27,7 +27,7 @@ class Navigable(abc.ABC):
 
 class State(Dict[str, Any]):
     """
-    Wrapper around dict to support attribute accessors
+    Wrapper around dict to support attribute accessors.
     """
 
     def __getattr__(self, var: str) -> Any:
@@ -184,6 +184,7 @@ class DescribeContext(StateContext):
     __slots__ = ()
 
     def __init__(self, *variables: str, **typed_variables: Type):
+        """Initialise state context for describing a workflow."""
         state = {var: (None, None) for var in variables}
         state.update(
             {var: (var_type, None) for var, var_type in typed_variables.items()}

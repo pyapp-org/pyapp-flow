@@ -13,13 +13,15 @@ from pyapp_flow.functions import merge_nested_entries
 
 
 class MergeMethod(enum.Enum):
+    """Method used to merge outputs of a parallel node."""
+
     Append = "append"
     Extend = "extend"
 
 
 def import_node(node_id: str) -> Callable[[WorkflowContext], Any]:
     """
-    Import a node
+    Import a node.
     """
     module_name, func = node_id.split(":")
     module = importlib.import_module(module_name)

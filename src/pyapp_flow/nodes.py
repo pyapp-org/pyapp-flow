@@ -16,9 +16,7 @@ from .functions import extract_inputs, extract_outputs, call_nodes, var_list
 from .exceptions import FatalError, WorkflowRuntimeError
 
 
-class Node(Protocol):
-    def __call__(self, context: WorkflowContext) -> Any:
-        ...
+Node = Callable[[WorkflowContext], Any]
 
 
 class Step(Navigable):
@@ -73,6 +71,7 @@ class Step(Navigable):
         self.outputs = extract_outputs(func, output)
 
     def __call__(self, context: WorkflowContext):
+        """Call the step function."""
         state = context.state
 
         # Prepare args from context
@@ -106,6 +105,7 @@ class Step(Navigable):
 
     @property
     def name(self) -> str:
+        """Return the name of the step"""
         return self._name
 
 
@@ -115,12 +115,12 @@ def step(
     name: str = None,
     output: Sequence[str] = None,
     ignore_exceptions: Union[Type[Exception], Sequence[Type[Exception]]] = None,
-) -> Step:
+) -> Callable[[Callable], Step]:
     """
     Decorate a method turning it into a step
     """
 
-    def decorator(func_):
+    def decorator(func_) -> Step:
         return Step(func_, name, output, ignore_exceptions)
 
     return decorator(func) if func else decorator
