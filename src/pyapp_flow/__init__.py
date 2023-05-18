@@ -66,7 +66,7 @@ class Workflow(Nodes):
         self.description = description
 
     def __call__(self, context: WorkflowContext):
-        context.info("⏩ Workflow: `%s`", self._name)
+        context.info("⏩ Workflow: `%s`", context.format(self._name))
         with context:
             self._execute(context)
 
@@ -75,7 +75,7 @@ class Workflow(Nodes):
         return self._name
 
     def execute(
-        self, context: WorkflowContext = None, **context_vars
+        self, context: WorkflowContext = None, *, dry_run: bool = False, **context_vars
     ) -> WorkflowContext:
         """
         Execute workflow. This is the main way to trigger a work flow
@@ -86,9 +86,9 @@ class Workflow(Nodes):
         :return: The context used to execute the workflow
 
         """
-        context = context or WorkflowContext()
+        context = context or WorkflowContext(dry_run=dry_run)
         context.state.update(context_vars)
-        context.logger.info("⏩ Workflow: `%s`", self._name)
+        context.info("⏩ Workflow: `%s`", self._name)
         self._execute(context)
         return context
 
