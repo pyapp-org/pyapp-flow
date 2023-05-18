@@ -599,14 +599,14 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "pyapp"
-version = "4.12.0"
+version = "4.13.0"
 description = "A Python application framework - Let us handle the boring stuff!"
 category = "main"
 optional = true
 python-versions = ">=3.8,<4.0"
 files = [
-    {file = "pyapp-4.12.0-py3-none-any.whl", hash = "sha256:fb5e150ab861e3d0cc7fae76929cc319a2a5768310745ab3b3709e13817c6e92"},
-    {file = "pyapp-4.12.0.tar.gz", hash = "sha256:c8496c65c98d41d783ff6ec8fbccf106f91c5f582689edc4c71febfdb051fea5"},
+    {file = "pyapp-4.13.0-py3-none-any.whl", hash = "sha256:59847fee19deaf058288e7470de98d8ec2665bd0b058a65dd4616447511501a4"},
+    {file = "pyapp-4.13.0.tar.gz", hash = "sha256:d210af5a77af7eaca87a90b0906dd3468f424c3a14c7f74b264fa82f49d6f537"},
 ]
 
 [package.dependencies]
