@@ -4,7 +4,7 @@ from unittest.mock import ANY
 
 import pytest
 
-from pyapp_flow import nodes, WorkflowContext
+from pyapp_flow import nodes, WorkflowContext, skip_step
 from pyapp_flow.errors import FatalError, WorkflowRuntimeError
 from pyapp_flow.testing import call_node
 
@@ -27,6 +27,10 @@ def valid_raise_exception():
 
 def valid_raise_fatal_exception():
     raise FatalError("Boom!")
+
+
+def valid_skip_step():
+    skip_step("Skip!")
 
 
 class TestStep:
@@ -79,6 +83,12 @@ class TestStep:
 
         with pytest.raises(FatalError):
             target(context)
+
+    def test_call__skipped(self):
+        context = WorkflowContext()
+        target = nodes.Step(valid_skip_step)
+
+        target(context)
 
 
 class TestAppend:

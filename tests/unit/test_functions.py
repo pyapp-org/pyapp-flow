@@ -3,7 +3,12 @@ from typing import Tuple
 import pytest
 
 from pyapp_flow import functions, WorkflowContext
-from pyapp_flow.errors import WorkflowSetupError
+from pyapp_flow.errors import WorkflowSetupError, SkipStep
+
+
+def test_skip_step():
+    with pytest.raises(SkipStep, match="foo"):
+        functions.skip_step("foo")
 
 
 @pytest.mark.parametrize(
