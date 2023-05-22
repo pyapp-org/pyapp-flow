@@ -5,7 +5,7 @@ from unittest.mock import ANY
 import pytest
 
 from pyapp_flow import nodes, WorkflowContext
-from pyapp_flow.exceptions import FatalError, WorkflowRuntimeError
+from pyapp_flow.errors import FatalError, WorkflowRuntimeError
 from pyapp_flow.testing import call_node
 
 

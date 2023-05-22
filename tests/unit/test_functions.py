@@ -3,7 +3,7 @@ from typing import Tuple
 import pytest
 
 from pyapp_flow import functions, WorkflowContext
-from pyapp_flow.exceptions import WorkflowSetupError
+from pyapp_flow.errors import WorkflowSetupError
 
 
 @pytest.mark.parametrize(
