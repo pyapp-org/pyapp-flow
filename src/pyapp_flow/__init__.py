@@ -3,7 +3,7 @@ from typing import Optional
 
 from . import errors as exceptions
 from .datastructures import WorkflowContext, Navigable, Branches
-from .functions import extract_inputs
+from .functions import extract_inputs, skip_step
 from .nodes import (
     Node,
     step,
