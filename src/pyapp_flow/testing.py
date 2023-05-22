@@ -1,6 +1,4 @@
-"""
-Helper methods for testing workflows
-"""
+"""Helper methods for testing workflows."""
 from typing import Any, Callable
 
 from .datastructures import WorkflowContext
@@ -9,9 +7,10 @@ from .datastructures import WorkflowContext
 def call_node(
     node: Callable[[WorkflowContext], Any], **context_vars: Any
 ) -> WorkflowContext:
-    """
-    Simplifies the testing of any node by handling the boilerplate code required
-    to set up a :class:`pyapp_flow.WorkflowContext` with the expected variables.
+    """Simplifies the testing of any node.
+
+    Handles the boilerplate code required to set up a
+    :class:`pyapp_flow.WorkflowContext` with the expected variables.
 
     Method returns the generated context object to be asserted on.
 

@@ -9,26 +9,24 @@ Branches = Dict[str, Sequence["Navigable"]]
 
 
 class Navigable(abc.ABC):
+    """ABC for objects that can be navigated.
+
+    Used to map out the workflow tree."""
+
     @property
     @abc.abstractmethod
     def name(self) -> str:
-        """
-        Name of object
-        """
+        """Name of object"""
 
     def branches(self) -> Optional[Branches]:
-        """
-        Branches from an object in the workflow node tree.
-        """
+        """Branches from an object in the workflow node tree."""
 
     def __str__(self):
         return self.name
 
 
 class State(Dict[str, Any]):
-    """
-    Wrapper around dict to support attribute accessors.
-    """
+    """Wrapper around dict to support attribute accessors."""
 
     def __getattr__(self, var: str) -> Any:
         try:
@@ -47,9 +45,7 @@ class State(Dict[str, Any]):
 
 
 class StateContext:
-    """
-    Base object that tracks nested state
-    """
+    """Base object that tracks nested state"""
 
     __slots__ = ("state", "_state_vector")
 
@@ -64,31 +60,26 @@ class StateContext:
         self.pop_state()
 
     def push_state(self):
-        """
-        Clone the current state so any modification doesn't affect the outer
-        scope and append it to the state vector.
+        """Clone the current state and append to state vector.
+
+        So any modification doesn't affect the outer scope.
         """
         self.state = State(self.state)
         self._state_vector.append(self.state)
 
     def pop_state(self):
-        """
-        Pop the top state from the state vector.
-        """
+        """Pop the top state from the state vector."""
         self._state_vector.pop()
         self.state = self._state_vector[-1]
 
     @property
     def depth(self) -> int:
-        """
-        Current scope depth; or size of the current state vector
-        """
+        """Current scope depth; or size of the current state vector"""
         return len(self._state_vector)
 
 
 class WorkflowContext(StateContext):
-    """
-    Current context of the workflow.
+    """Current context of the workflow.
 
     This object can be used as a context object to apply state scoping.
 
@@ -119,55 +110,38 @@ class WorkflowContext(StateContext):
 
     @property
     def indent(self) -> str:
-        """
-        Helper that returns an indent based on the scope depth for formatting
-        log messages.
-        """
+        """Spacing based on the current indent level."""
         return "  " * self.depth
 
     def log(self, level: int, msg: str, *args, **kwargs):
-        """
-        Log a message to logger indented by the current scope depth.
-        """
+        """Log a message to logger indented by the current scope depth."""
         self.logger.log(level, f"{self.indent}{msg}", *args, **kwargs)
 
     def debug(self, msg, *args):
-        """
-        Write a debug message to log
-        """
+        """Write a debug message to log."""
         self.log(logging.DEBUG, msg, *args)
 
     def info(self, msg, *args):
-        """
-        Write a info message to log
-        """
+        """Write a info message to log."""
         self.log(logging.INFO, msg, *args)
 
     def warning(self, msg, *args):
-        """
-        Write a warning message to log
-        """
+        """Write a warning message to log."""
         self.log(logging.WARNING, msg, *args)
 
     def error(self, msg, *args):
-        """
-        Write a error message to log
-        """
+        """Write a error message to log."""
         self.log(logging.ERROR, msg, *args)
 
     def exception(self, msg, *args):
-        """
-        Write a exception message to log
-        """
+        """Write a exception message to log."""
         self.log(logging.ERROR, msg, *args, exc_info=True)
 
     def format(self, message: str) -> str:
-        """
-        Format a message using context variables.
+        """Format a message using context variables.
 
         Return a formatted version of message, using substitutions context
         variables. The substitutions are identified by braces ('{' and '}').
-
         """
         try:
             return message.format(**self.state)
@@ -177,9 +151,7 @@ class WorkflowContext(StateContext):
 
 
 class DescribeContext(StateContext):
-    """
-    Context used to describe/verify a workflow.
-    """
+    """Context used to describe/verify a workflow."""
 
     __slots__ = ()
 
