@@ -56,12 +56,12 @@ great_everybody(context)
 
 All nodes within the workflow follow a simple interface of:
 ```python
-def node_function(context: WorkflowContext):
+def node_function(context: flow.WorkflowContext):
     ...
 ```
 or using typing
 ```python
-NodeFunction = Callable[[WorkflowContext], Any]
+NodeFunction = Callable[[flow.WorkflowContext], Any]
 ```
 
 The `step` decorator simplifies definition of a step by handling loading and saving 
@@ -88,7 +88,7 @@ be modified (eg list/dicts).
 
 ```python
 workflow = (
-    Workflow(name="My Workflow")
+    flow.Workflow(name="My Workflow")
     .nodes(...)
 )
 ```
