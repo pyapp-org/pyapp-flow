@@ -1,6 +1,4 @@
-"""
-Parallel Nodes
-"""
+"""Parallel Nodes"""
 import importlib
 import enum
 from functools import cached_property
@@ -20,10 +18,8 @@ class MergeMethod(enum.Enum):
 
 
 def import_node(node_id: str) -> Callable[[WorkflowContext], Any]:
-    """
-    Import a node.
-    """
-    module_name, func = node_id.split(":")
+    """Import a node."""
+    module_name, _, func = node_id.rpartition(":")
     module = importlib.import_module(module_name)
     return getattr(module, func)
 
@@ -57,7 +53,9 @@ class _ParallelNode:
         context_iter: Iterable[Dict[str, Any]],
         return_vars: Sequence[str],
     ) -> Sequence[Any]:
-        """Map and iterable of context entries into a node using a parallel worker pool"""
+        """Map an iterable of context entries into a node.
+
+        Uses a parallel worker pool."""
         return self._pool.starmap(
             _call_parallel_node,
             ((node_id, context_data, return_vars) for context_data in context_iter),
@@ -136,9 +134,11 @@ class MapNode(Navigable, _ParallelNode):
 
     @property
     def name(self):
+        """Name of node."""
         return f"Map ({self.target_var}) in `{self.in_var}`"
 
     def branches(self) -> Optional[Branches]:
+        """Branches to call on each iteration of the foreach block."""
         return {"loop": [self._node_id]}
 
     def loop(self, node: str) -> "MapNode":

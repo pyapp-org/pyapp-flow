@@ -4,6 +4,7 @@
 Changes
 -------
 
+- Format output of Workflow name to format from the context.
 - Added a skip_step function, that allows a step to be skipped. This is based
   off an exception that is handled by the Step class wrapping the function.
 
