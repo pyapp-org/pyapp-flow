@@ -1,22 +1,26 @@
 from typing import Callable, Mapping, Tuple, Sequence, Union, Iterable
 
 from .datastructures import WorkflowContext
-from .exceptions import WorkflowSetupError
+from .errors import WorkflowSetupError, SkipStep
+
+
+def skip_step(message: str):
+    """Skip the current step.
+
+    Uses a SkipStep exception to skip the current step.
+    """
+    raise SkipStep(message)
 
 
 def var_list(var_names: Union[str, Sequence[str]]) -> Sequence[str]:
-    """
-    Split a comma separated list of var names into individual names.
-    """
+    """Split a comma separated list of var names into individual names."""
     if isinstance(var_names, str):
         var_names = var_names.split(",")
     return [name.strip() for name in var_names]
 
 
 def extract_inputs(func: Callable) -> Tuple[Mapping[str, type], str]:
-    """
-    Extract input variables from function
-    """
+    """Extract input variables from function."""
     func_code = func.__code__
     annotations = func.__annotations__
 
@@ -53,9 +57,7 @@ def extract_inputs(func: Callable) -> Tuple[Mapping[str, type], str]:
 def extract_outputs(
     func: Callable, names: Union[str, Sequence[str]]
 ) -> Sequence[Tuple[str, type]]:
-    """
-    Extract outputs from function
-    """
+    """Extract outputs from function."""
     types = func.__annotations__.get("return")
 
     # Ensure names is a list
@@ -81,9 +83,7 @@ def extract_outputs(
 
 
 def call_nodes(context: WorkflowContext, nodes: Sequence[Callable]):
-    """
-    Call each node in a sequence.
-    """
+    """Call each node in a sequence."""
     for node in nodes:
         node(context)
 
@@ -91,8 +91,7 @@ def call_nodes(context: WorkflowContext, nodes: Sequence[Callable]):
 def merge_nested_entries(
     iterable: Iterable[list], merge_methods: Sequence[str]
 ) -> Sequence[list]:
-    """
-    Rotate and combine rows of data
+    """Rotate and combine rows of data.
 
     >>> merge_nested_entries([[1, 2, [3]], [4, 5, [6, 7]]], ("append", "append", "extend"))
     ... [[1, 4], [2, 5], [3, 6, 7]]

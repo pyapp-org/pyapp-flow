@@ -8,13 +8,11 @@ from typing import (
     Hashable,
     Optional,
     Any,
-    Protocol,
 )
 
 from .datastructures import WorkflowContext, Navigable, Branches
 from .functions import extract_inputs, extract_outputs, call_nodes, var_list
-from .exceptions import FatalError, WorkflowRuntimeError
-
+from .errors import FatalError, WorkflowRuntimeError, SkipStep
 
 Node = Callable[[WorkflowContext], Any]
 
@@ -70,7 +68,7 @@ class Step(Navigable):
         self.inputs, self.context_var = extract_inputs(func)
         self.outputs = extract_outputs(func, output)
 
-    def __call__(self, context: WorkflowContext):
+    def __call__(self, context: WorkflowContext) -> Any:
         """Call the step function."""
         state = context.state
 
@@ -82,6 +80,9 @@ class Step(Navigable):
         context.info("🔹Step `%s`", context.format(self.name))
         try:
             results = self.func(**kwargs)
+
+        except SkipStep as ex:
+            context.warning(" 🔃 Skipping step: %s", ex)
 
         except FatalError as ex:
             context.error("  ⛔ Fatal error raised: %s", ex)
@@ -115,10 +116,8 @@ def step(
     name: str = None,
     output: Sequence[str] = None,
     ignore_exceptions: Union[Type[Exception], Sequence[Type[Exception]]] = None,
-) -> Callable[[Callable], Step]:
-    """
-    Decorate a method turning it into a step
-    """
+) -> Union[Callable[[Callable], Step], Step]:
+    """Decorate a method turning it into a step"""
 
     def decorator(func_) -> Step:
         return Step(func_, name, output, ignore_exceptions)
@@ -127,8 +126,7 @@ def step(
 
 
 class SetVar(Navigable):
-    """
-    Set context variable to specified values
+    """Set context variable to specified values
 
     :param values: Key/Value pairs or Key/Callable pairs to be applied to the
                    context.
@@ -165,8 +163,7 @@ class SetVar(Navigable):
 
 
 class Append(Navigable):
-    """
-    Append a message to a list.
+    """Append a message to a list.
 
     The message is formatted using :func:`pyapp_flow.WorkflowContext.format`
     before being appended the ``target_var``.
@@ -201,9 +198,9 @@ class Append(Navigable):
 
 
 class CaptureErrors(Navigable):
-    """
-    Capture and store any exceptions raised by node(s) within the capture block
-    to a variable within the context.
+    """Capture and store any exceptions raised by node(s).
+
+    Errors are captured into the specified variable.
 
     If the target_var does not exist a new list will be created.
 
@@ -263,20 +260,17 @@ class CaptureErrors(Navigable):
         return {"": tuple(self._nodes)}
 
     def nodes(self, *nodes: Node):
-        """
-        Add additional nodes
-        """
+        """Add additional nodes."""
         self._nodes.extend(nodes)
         return self
 
 
 class Conditional(Navigable):
-    """
-    Branch a workflow based on a condition, analogous with an if statement
+    """Branch a workflow based on a condition, analogous with an if statement.
 
-    :param condition: A condition can be either a context variable that can be interpreted as a
-        ``bool`` (using Python rules) or a callable that accepts a
-        :class:`pyapp_flow.WorkflowContext` and returns a ``bool``.
+    :param condition: A condition can be either a context variable that can be
+        interpreted as a ``bool`` (using Python rules) or a callable that
+        accepts a :class:`pyapp_flow.WorkflowContext` and returns a ``bool``.
 
     .. code-block:: python
 
@@ -325,16 +319,12 @@ class Conditional(Navigable):
         return {"true": self._true_nodes, "false": self._false_nodes}
 
     def true(self, *nodes: Node) -> "Conditional":
-        """
-        Nodes to use for the true branch
-        """
+        """Nodes to use for the true branch."""
         self._true_nodes = nodes
         return self
 
     def false(self, *nodes: Node) -> "Conditional":
-        """
-        Nodes to use for the false branch
-        """
+        """Nodes to use for the false branch."""
         self._false_nodes = nodes
         return self
 
@@ -343,8 +333,7 @@ If = Conditional
 
 
 class Switch(Navigable):
-    """
-    Branch a workflow into one of multiple subprocesses, analogous with a
+    """Branch a workflow into one of multiple subprocesses, analogous with a
     switch statement found in many languages or with Python a dict lookup with
     a default fallback.
 
@@ -402,23 +391,18 @@ class Switch(Navigable):
         return branches
 
     def case(self, key: Hashable, *nodes: Node) -> "Switch":
-        """
-        Key used to match branch and the nodes that make up the branch
-        """
+        """Key used to match branch and the nodes that make up the branch."""
         self._options[key] = nodes
         return self
 
     def default(self, *nodes: Node) -> "Switch":
-        """
-        If a case key is not matched use these nodes as the default branch.
-        """
+        """If a case key is not matched use these nodes as the default branch."""
         self._default = nodes
         return self
 
 
 class LogMessage(Navigable):
-    """
-    Print a message to log with optional level.
+    """Print a message to log with optional level.
 
     The message is formatted using :func:`pyapp_flow.WorkflowContext.format`
     before being appended to the log.
@@ -449,21 +433,21 @@ class LogMessage(Navigable):
 
 
 class ForEach(Navigable):
-    """
-    For each loop to iterate through a set of values and call a set of nodes
-    on each value; analogous with a for loop this node will iterate through a
-    sequence and call each of the child nodes.
+    """For each loop to iterate through a set of values.
+
+    Call a set of nodes on each value; analogous with a for loop this node
+    will iterate through a sequence and call each of the child nodes.
 
     All nodes within a for-each loop are in a nested context scope.
 
-    Values can be un-packed into multiple context variables using Python iterable
-    unpacking rules.
+    Values can be un-packed into multiple context variables using Python
+    iterable unpacking rules.
 
-    :param target_vars: Singular or multiple variables to unpack value into. This
-        value can be either a single string, a comma separated list of strings or
-        a sequence of strings.
-    :param in_var: Context variable containing a sequence of values to be iterated
-        over.
+    :param target_vars: Singular or multiple variables to unpack value into.
+        This value can be either a single string, a comma separated list of
+        strings or a sequence of strings.
+    :param in_var: Context variable containing a sequence of values to be
+        iterated over.
 
     .. code-block:: python
 
@@ -517,17 +501,13 @@ class ForEach(Navigable):
         return {"loop": self._nodes}
 
     def loop(self, *nodes: Node) -> "ForEach":
-        """
-        Nodes to call on each iteration of the foreach block
-        """
+        """Nodes to call on each iteration of the foreach block."""
         self._nodes = nodes
         return self
 
     @staticmethod
     def _single_value(target_var: str):
-        """
-        Handle single value for target
-        """
+        """Handle single value for target."""
 
         def _values(value, context: WorkflowContext):
             context.state[target_var] = value
@@ -535,9 +515,7 @@ class ForEach(Navigable):
         return _values
 
     def _multiple_value(self, target_vars: Sequence[str]):
-        """
-        Handle multiple value for target
-        """
+        """Handle multiple value for target."""
 
         def _values(values, context: WorkflowContext):
             try:
