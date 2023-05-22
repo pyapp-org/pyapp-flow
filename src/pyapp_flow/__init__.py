@@ -1,9 +1,7 @@
-"""
-Application Workflow
-"""
+"""Application Workflow"""
 from typing import Optional
 
-from . import exceptions
+from . import errors as exceptions
 from .datastructures import WorkflowContext, Navigable, Branches
 from .functions import extract_inputs
 from .nodes import (
@@ -22,9 +20,7 @@ from .nodes import (
 
 
 class Nodes(Navigable):
-    """
-    A series of nodes to be executed on call.
-    """
+    """A series of nodes to be executed on call."""
 
     __slots__ = ("_nodes",)
 
@@ -50,8 +46,7 @@ class Nodes(Navigable):
 
 
 class Workflow(Nodes):
-    """
-    A collection of Nodes that make up a workflow.
+    """A collection of Nodes that make up a workflow.
 
     :param name: The name of the workflow
     :param description: An optional description (similar to doc text) for the
@@ -77,8 +72,9 @@ class Workflow(Nodes):
     def execute(
         self, context: WorkflowContext = None, *, dry_run: bool = False, **context_vars
     ) -> WorkflowContext:
-        """
-        Execute workflow. This is the main way to trigger a work flow
+        """Execute workflow.
+
+        This is the main way to trigger a work flow.
 
         :param context: Optional context; a new one will be created if not supplied.
         :param dry_run: Flag used to skip steps that have side effects.
@@ -93,19 +89,16 @@ class Workflow(Nodes):
         return context
 
     def nodes(self, *nodes_: Node) -> "Workflow":
-        """
-        Append additional node(s) into the node list
+        """Append additional node(s) into the node list.
 
         :param nodes_: Nodes to append to the current block
         :return: Returns self; fluent interface
-
         """
         self._nodes.extend(nodes_)
         return self
 
     def nested(self, *nodes_: Node) -> "Workflow":
-        """
-        Add nested node(s), nested nodes have their own scope
+        """Add nested node(s), nested nodes have their own scope.
 
         :param nodes_: Collection of nodes call from nested block.
         :return: Returns self; fluent interface
@@ -115,8 +108,7 @@ class Workflow(Nodes):
         return self
 
     def set_vars(self, **kwargs) -> "Workflow":
-        """
-        Set variables to a particular value
+        """Set variables to a particular value.
 
         :param kwargs: Key/Value pairs to update in the context
         :return: Returns self; fluent interface
