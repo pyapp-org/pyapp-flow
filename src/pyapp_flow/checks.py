@@ -1,3 +1,1 @@
-"""
-Checks to run over pipelines
-"""
+"""Checks to run over pipelines"""

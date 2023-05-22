@@ -122,7 +122,7 @@ class WorkflowContext(StateContext):
         self.log(logging.DEBUG, msg, *args)
 
     def info(self, msg, *args):
-        """Write a info message to log."""
+        """Write an info message to log."""
         self.log(logging.INFO, msg, *args)
 
     def warning(self, msg, *args):
@@ -130,11 +130,11 @@ class WorkflowContext(StateContext):
         self.log(logging.WARNING, msg, *args)
 
     def error(self, msg, *args):
-        """Write a error message to log."""
+        """Write an error message to log."""
         self.log(logging.ERROR, msg, *args)
 
     def exception(self, msg, *args):
-        """Write a exception message to log."""
+        """Write an exception message to log."""
         self.log(logging.ERROR, msg, *args, exc_info=True)
 
     def format(self, message: str) -> str:
