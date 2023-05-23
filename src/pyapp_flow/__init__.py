@@ -1,11 +1,9 @@
-"""
-Application Workflow
-"""
+"""Application Workflow"""
 from typing import Optional
 
-from . import exceptions
+from . import errors as exceptions
 from .datastructures import WorkflowContext, Navigable, Branches
-from .functions import extract_inputs
+from .functions import extract_inputs, skip_step
 from .nodes import (
     Node,
     step,
@@ -22,13 +20,12 @@ from .nodes import (
 
 
 class Nodes(Navigable):
-    """
-    A series of nodes to be executed on call.
-    """
+    """A series of nodes to be executed on call."""
 
     __slots__ = ("_nodes",)
 
     def __init__(self, *nodes_: Node):
+        """Initialise nodes."""
         self._nodes = list(nodes_)
 
     def __call__(self, context: WorkflowContext):
@@ -40,6 +37,7 @@ class Nodes(Navigable):
         return "Nodes"
 
     def branches(self) -> Optional[Branches]:
+        """Return branches for this node."""
         return {"": self._nodes}
 
     def _execute(self, context: WorkflowContext):
@@ -48,8 +46,7 @@ class Nodes(Navigable):
 
 
 class Workflow(Nodes):
-    """
-    A collection of Nodes that make up a workflow.
+    """A collection of Nodes that make up a workflow.
 
     :param name: The name of the workflow
     :param description: An optional description (similar to doc text) for the
@@ -64,7 +61,7 @@ class Workflow(Nodes):
         self.description = description
 
     def __call__(self, context: WorkflowContext):
-        context.info("⏩ Workflow: `%s`", self._name)
+        context.info("⏩ Workflow: `%s`", context.format(self._name))
         with context:
             self._execute(context)
 
@@ -73,36 +70,35 @@ class Workflow(Nodes):
         return self._name
 
     def execute(
-        self, context: WorkflowContext = None, **context_vars
+        self, context: WorkflowContext = None, *, dry_run: bool = False, **context_vars
     ) -> WorkflowContext:
-        """
-        Execute workflow. This is the main way to trigger a work flow
+        """Execute workflow.
+
+        This is the main way to trigger a work flow.
 
         :param context: Optional context; a new one will be created if not supplied.
+        :param dry_run: Flag used to skip steps that have side effects.
         :param context_vars: Key/Value pairs to initialise the context with.
         :return: The context used to execute the workflow
 
         """
-        context = context or WorkflowContext()
+        context = context or WorkflowContext(dry_run=dry_run)
         context.state.update(context_vars)
-        context.logger.info("⏩ Workflow: `%s`", self._name)
+        context.info("⏩ Workflow: `%s`", self._name)
         self._execute(context)
         return context
 
     def nodes(self, *nodes_: Node) -> "Workflow":
-        """
-        Append additional node(s) into the node list
+        """Append additional node(s) into the node list.
 
         :param nodes_: Nodes to append to the current block
         :return: Returns self; fluent interface
-
         """
         self._nodes.extend(nodes_)
         return self
 
     def nested(self, *nodes_: Node) -> "Workflow":
-        """
-        Add nested node(s), nested nodes have their own scope
+        """Add nested node(s), nested nodes have their own scope.
 
         :param nodes_: Collection of nodes call from nested block.
         :return: Returns self; fluent interface
@@ -112,8 +108,7 @@ class Workflow(Nodes):
         return self
 
     def set_vars(self, **kwargs) -> "Workflow":
-        """
-        Set variables to a particular value
+        """Set variables to a particular value.
 
         :param kwargs: Key/Value pairs to update in the context
         :return: Returns self; fluent interface

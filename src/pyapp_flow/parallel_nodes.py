@@ -1,6 +1,4 @@
-"""
-Parallel Nodes
-"""
+"""Parallel Nodes"""
 import importlib
 import enum
 from functools import cached_property
@@ -8,28 +6,26 @@ from multiprocessing import Pool
 from typing import Optional, Callable, Iterable, Any, Dict, Tuple, Sequence, Union
 
 from pyapp_flow import Navigable, WorkflowContext, Branches
-from pyapp_flow.exceptions import WorkflowRuntimeError, FatalError
+from pyapp_flow.errors import WorkflowRuntimeError, FatalError
 from pyapp_flow.functions import merge_nested_entries
 
 
 class MergeMethod(enum.Enum):
+    """Method used to merge outputs of a parallel node."""
+
     Append = "append"
     Extend = "extend"
 
 
 def import_node(node_id: str) -> Callable[[WorkflowContext], Any]:
-    """
-    Import a node
-    """
-    module_name, func = node_id.split(":")
+    """Import a node."""
+    module_name, _, func = node_id.rpartition(":")
     module = importlib.import_module(module_name)
     return getattr(module, func)
 
 
 def _call_parallel_node(node_id, context_data, return_vars):
-    """
-    Wrapper to call parallel nodes
-    """
+    """Wrapper to call parallel nodes."""
     try:
         node = import_node(node_id)
     except (AttributeError, ImportError) as ex:
@@ -45,9 +41,7 @@ def _call_parallel_node(node_id, context_data, return_vars):
 
 
 class _ParallelNode:
-    """
-    Wrapper around multiprocessing pool to do actual parallel processing
-    """
+    """Wrapper around multiprocessing pool to do actual parallel processing."""
 
     __slots__ = ()
 
@@ -59,9 +53,9 @@ class _ParallelNode:
         context_iter: Iterable[Dict[str, Any]],
         return_vars: Sequence[str],
     ) -> Sequence[Any]:
-        """
-        Map and iterable of context entries into a node using a parallel worker pool
-        """
+        """Map an iterable of context entries into a node.
+
+        Uses a parallel worker pool."""
         return self._pool.starmap(
             _call_parallel_node,
             ((node_id, context_data, return_vars) for context_data in context_iter),
@@ -73,19 +67,19 @@ class _ParallelNode:
 
 
 class MapNode(Navigable, _ParallelNode):
-    """
-    Map an iterable into a specified node using the multiprocessing library to
-    perform the operation in parallel.
+    """Map an iterable into a specified node.
+
+    Using the multiprocessing library to perform the operation in parallel.
 
     An independent context scope is created subprocess with an optional
     ``merge_var`` supplied to be collected from this context to be combined as
     the output of the parallel mapping operation.
 
-    :param target_var: Singular or multiple variables to unpack value into. This
-        value can be either a single string, a comma separated list of strings or
-        a sequence of strings.
-    :param in_var: Context variable containing a sequence of values to be iterated
-        over.
+    :param target_var: Singular or multiple variables to unpack value into.
+        This value can be either a single string, a comma separated list of
+        strings or a sequence of strings.
+    :param in_var: Context variable containing a sequence of values to be
+        iterated over.
 
     .. code-block:: python
 
@@ -140,21 +134,20 @@ class MapNode(Navigable, _ParallelNode):
 
     @property
     def name(self):
+        """Name of node."""
         return f"Map ({self.target_var}) in `{self.in_var}`"
 
     def branches(self) -> Optional[Branches]:
+        """Branches to call on each iteration of the foreach block."""
         return {"loop": [self._node_id]}
 
     def loop(self, node: str) -> "MapNode":
-        """
-        Nodes to call on each iteration of the foreach block
-        """
+        """Nodes to call on each iteration of the foreach block."""
         self._node_id = node
         return self
 
     def merge_vars(self, *merge_vars: Union[str, Tuple[str, MergeMethod]]) -> "MapNode":
-        """
-        Vars to merge back from parallel execution.
+        """Vars to merge back from parallel execution.
 
         These can optionally take a merge method to defined how the variables
         are merged; the default is ``append`` which will append each variable
