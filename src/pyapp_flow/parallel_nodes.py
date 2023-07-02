@@ -158,7 +158,8 @@ class MapNode(Navigable, _ParallelNode):
         self._merge_vars = _merge_vars = []
         for merge_var in merge_vars:
             if isinstance(merge_var, str):
-                _merge_vars.append((merge_var, MergeMethod.Append.value))
+                var, method = merge_var, MergeMethod.Append
             else:
-                _merge_vars.append((merge_var[0], merge_var[1].value))
+                var, method = merge_var
+            _merge_vars.append((var, method.value))
         return self
