@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict
 from types import ModuleType
 
-from pyapp_flow import Workflow
+from pyapp_flow import Workflow, WorkflowContext
 
 log = logging.getLogger(__package__)
 
@@ -56,18 +56,39 @@ def run_flow(flow_file: Path, name: str, args: Dict[str, str], dry_run: bool):
     """
     Run a workflow
     """
-    flow_module = _import_flow_file(flow_file)
-    flow = _resolve_flow(flow_module, name)
+    try:
+        flow_module = _import_flow_file(flow_file)
+    except FileNotFoundError:
+        log.error("Flow file not found")
+        return 404
 
     try:
-        flow.execute(**args, dry_run=dry_run)
+        flow = _resolve_flow(flow_module, name)
+    except RuntimeError as ex:
+        log.error(ex)
+        return 404
+
+    context = WorkflowContext(dry_run=dry_run)
+    try:
+        flow.execute(context, **args)
+
     except Exception:
-        log.exception("Error running workflow")
+        log.error("Flow Trace:\n%s", context.flow_trace)
+        raise
 
 
 def graph_flow(flow_file: Path, name: str):
     """
     Graph a workflow
     """
-    flow_module = _import_flow_file(flow_file)
-    flow = _resolve_flow(flow_module, name)
+    try:
+        flow_module = _import_flow_file(flow_file)
+    except FileNotFoundError:
+        log.error("Flow file not found")
+        return 404
+
+    try:
+        flow = _resolve_flow(flow_module, name)
+    except RuntimeError as ex:
+        log.error(ex)
+        return 404
