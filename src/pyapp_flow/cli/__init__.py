@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Optional, Dict, Mapping
 
 from pyapp.app import CliApplication, Arg
 
@@ -14,18 +14,36 @@ main = app.dispatch
 @app.command
 def run(
     name: str = Arg(help="Name of workflow"),
-    args: Optional[Dict[str, str]] = Arg(),
+    args: Mapping[str, str] = Arg(help="Key/Value arguments added to flow context"),
     *,
     flow_file: Path = Arg(
         "-f",
         default=Path("./flowfile.py"),
         help="Location of flow file; default is ./flowfile.py",
     ),
-    dry_run: bool = False
-):
+    dry_run: bool = Arg(default=False, help="Dry run; do not execute actions"),
+) -> Optional[int]:
     """
     Run a workflow
     """
     from .actions import run_flow
 
-    run_flow(flow_file, name, args or {}, dry_run)
+    return run_flow(flow_file, name, args or {}, dry_run)
+
+
+@app.command
+def graph(
+    name: str = Arg(help="Name of workflow"),
+    *,
+    flow_file: Path = Arg(
+        "-f",
+        default=Path("./flowfile.py"),
+        help="Location of flow file; default is ./flowfile.py",
+    ),
+) -> Optional[int]:
+    """
+    Graph a workflow.
+    """
+    from .actions import graph_flow
+
+    return graph_flow(flow_file, name)

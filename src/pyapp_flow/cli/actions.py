@@ -16,11 +16,11 @@ def _import_flow_file(flow_file: Path) -> ModuleType:
     Based off the import code in nox.
     """
     if not flow_file.is_file():
-        raise RuntimeError(f"Flow file not found at: {flow_file}")
+        raise FileNotFoundError(f"Flow file not found at: {flow_file}")
 
     spec = importlib.util.spec_from_file_location("user_flow_module", flow_file)
     if spec is None:
-        raise RuntimeError(f"Unable to import flow file: {flow_file}")
+        raise ImportError(f"Unable to import flow file: {flow_file}")
 
     module = importlib.util.module_from_spec(spec)
     sys.modules["user_flow_module"] = module
@@ -63,3 +63,11 @@ def run_flow(flow_file: Path, name: str, args: Dict[str, str], dry_run: bool):
         flow.execute(**args, dry_run=dry_run)
     except Exception:
         log.exception("Error running workflow")
+
+
+def graph_flow(flow_file: Path, name: str):
+    """
+    Graph a workflow
+    """
+    flow_module = _import_flow_file(flow_file)
+    flow = _resolve_flow(flow_module, name)

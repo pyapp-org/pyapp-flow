@@ -105,6 +105,7 @@ class WorkflowContext(StateContext):
     __slots__ = ("logger",)
 
     def __init__(self, logger: logging.Logger = None, **variables):
+        variables["__trace"] = []
         super().__init__(variables)
         self.logger = logger or logging.getLogger("pyapp_flow")
 
@@ -112,6 +113,20 @@ class WorkflowContext(StateContext):
     def indent(self) -> str:
         """Spacing based on the current indent level."""
         return "  " * self.depth
+
+    def push_state(self):
+        """Push a new state onto the stack."""
+        super().push_state()
+
+        # Add a trace entry
+        self.state["__trace"] = []
+
+    def trace(self, node: Navigable, args=None):
+        """Add a node to the trace."""
+        self.state["__trace"].append((node, args))
+
+    def get_node_trace(self) -> Sequence[Sequence]:
+        pass
 
     def log(self, level: int, msg: str, *args, **kwargs):
         """Log a message to logger indented by the current scope depth."""
@@ -146,7 +161,13 @@ class WorkflowContext(StateContext):
         try:
             return message.format(**self.state)
         except Exception as ex:
-            self.exception("Exception formatting message %r: %s", message, ex)
+            self.log(
+                logging.WARNING,
+                "Exception formatting message %r: %s",
+                message,
+                ex,
+                exc_info=True,
+            )
             return message
 
 
