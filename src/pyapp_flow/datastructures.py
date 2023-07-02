@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from collections import deque
-from typing import Dict, Any, Type, Union, Sequence, Optional
+from typing import Dict, Any, Type, Union, Sequence, Optional, List, Tuple
 
 Branches = Dict[str, Sequence["Navigable"]]
 
@@ -23,6 +23,27 @@ class Navigable(abc.ABC):
 
     def __str__(self):
         return self.name
+
+
+class TraceScope(List[Tuple[Navigable, Dict[str, Any]]]):
+    """List of navigable objects that have been visited in the current scope."""
+
+
+class FlowTrace(List[TraceScope]):
+    """Trace of the visited workflow tree."""
+
+    def __str__(self):
+        lines = []
+        for idx, scope in enumerate(self):
+            for node, branch_args in scope:
+                if branch_args:
+                    branch_args = ", ".join(
+                        f"{k}={v!r}" for k, v in branch_args.items()
+                    )
+                    lines.append(f"{'  ' * idx}- {node.name}: {branch_args}")
+                else:
+                    lines.append(f"{'  ' * idx}- {node.name}")
+        return "\n".join(lines)
 
 
 class State(Dict[str, Any]):
@@ -102,12 +123,13 @@ class WorkflowContext(StateContext):
 
     """
 
-    __slots__ = ("logger",)
+    __slots__ = ("logger", "flow_trace")
 
     def __init__(self, logger: logging.Logger = None, **variables):
         variables["__trace"] = []
         super().__init__(variables)
         self.logger = logger or logging.getLogger("pyapp_flow")
+        self.flow_trace: Optional[FlowTrace] = None
 
     @property
     def indent(self) -> str:
@@ -119,14 +141,25 @@ class WorkflowContext(StateContext):
         super().push_state()
 
         # Add a trace entry
-        self.state["__trace"] = []
+        self.state["__trace"] = TraceScope()
 
-    def trace(self, node: Navigable, args=None):
+    def trace(self, node: Navigable):
         """Add a node to the trace."""
-        self.state["__trace"].append((node, args))
+        trace_scope: TraceScope = self.state["__trace"]
+        trace_scope.append((node, {}))
 
-    def get_node_trace(self) -> Sequence[Sequence]:
-        pass
+    def set_trace_args(self, args):
+        """Set the branch args for the current trace node."""
+        trace_scope: TraceScope = self.state["__trace"]
+        trace_scope[-1][1].update(args)
+
+    def capture_trace(self):
+        """Capture trace and location of an exception."""
+        trace = FlowTrace()
+        for scope in self._state_vector:
+            trace.append(scope["__trace"])
+        self.flow_trace = trace
+        return trace
 
     def log(self, level: int, msg: str, *args, **kwargs):
         """Log a message to logger indented by the current scope depth."""

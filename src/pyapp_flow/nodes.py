@@ -85,6 +85,7 @@ class Step(Navigable):
             context.warning(" 🔃 Skipping step: %s", ex)
 
         except FatalError as ex:
+            context.capture_trace()
             context.error("  ⛔ Fatal error raised: %s", ex)
             raise
 
@@ -92,6 +93,7 @@ class Step(Navigable):
             if self.ignore_exceptions and isinstance(ex, self.ignore_exceptions):
                 context.warning("  ❌ Ignoring exception: %s", ex)
             else:
+                context.capture_trace()
                 context.error("  ⛔ Exception raised: %s", ex)
                 raise
 
@@ -123,6 +125,24 @@ def step(
         return Step(func_, name, output, ignore_exceptions)
 
     return decorator(func) if func else decorator
+
+
+def inline(
+    func: Callable,
+    name: str = None,
+    ignore_exceptions: Union[Type[Exception], Sequence[Type[Exception]]] = None,
+) -> Step:
+    """Define an inline step.
+
+    An inline step is a step that is executed immediately and not added to the
+    workflow. This is useful for defining a step that is only used once.
+
+    :param func: Callable function or lambda
+    :param name: Optional name of the step (defaults to the name of the function)
+    :param ignore_exceptions: Optional exception type or sequence of exception
+    """
+
+    return Step(func, name, ignore_exceptions=ignore_exceptions)
 
 
 class SetVar(Navigable):
@@ -243,6 +263,7 @@ class CaptureErrors(Navigable):
 
         with context:
             for node in self._nodes:
+                context.trace(node)
                 try:
                     node(context)
                 except Exception as ex:
@@ -309,6 +330,7 @@ class Conditional(Navigable):
 
         nodes = self._true_nodes if condition else self._false_nodes
         if nodes:
+            context.set_trace_args({"condition": condition})
             call_nodes(context, nodes)
 
     @property
@@ -378,6 +400,7 @@ class Switch(Navigable):
         else:
             context.info("🔀 Switch %s matched branch", value)
 
+        context.set_trace_args({"switch": value})
         call_nodes(context, branch)
 
     @property
@@ -473,9 +496,9 @@ class ForEach(Navigable):
         self._nodes = []
 
         if len(target_vars) == 1:
-            self._update_context = self._single_value(target_vars[0])
+            self._context_update = self._single_value(target_vars[0])
         else:
-            self._update_context = self._multiple_value(target_vars)
+            self._context_update = self._multiple_value(target_vars)
 
     def __call__(self, context: WorkflowContext):
         context.info("🔁 %s", self)
@@ -488,8 +511,10 @@ class ForEach(Navigable):
             raise WorkflowRuntimeError(f"Variable {self.in_var} is not iterable")
 
         for value in iterable:
+            pairs = self._context_update(value)
+            context.set_trace_args(pairs)
             with context:
-                self._update_context(value, context)
+                context.state.update(pairs)
                 call_nodes(context, self._nodes)
 
     @property
@@ -509,22 +534,20 @@ class ForEach(Navigable):
     def _single_value(target_var: str):
         """Handle single value for target."""
 
-        def _values(value, context: WorkflowContext):
-            context.state[target_var] = value
+        def _values(value):
+            return {target_var: value}
 
         return _values
 
     def _multiple_value(self, target_vars: Sequence[str]):
         """Handle multiple value for target."""
 
-        def _values(values, context: WorkflowContext):
+        def _values(values):
             try:
-                pairs = zip(target_vars, values)
+                return zip(target_vars, values)
             except (TypeError, ValueError):
                 raise WorkflowRuntimeError(
                     f"Value {values} from {self.in_var} is not iterable"
                 )
-
-            context.state.update(pairs)
 
         return _values
