@@ -82,10 +82,22 @@ def extract_outputs(
     return tuple(zip(names, types))
 
 
+def call_node(context: WorkflowContext, node: Callable):
+    """Call a single node."""
+    context.trace(node)
+    try:
+        node(context)
+    except SkipStep:
+        raise
+    except Exception:
+        context.capture_trace()
+        raise
+
+
 def call_nodes(context: WorkflowContext, nodes: Sequence[Callable]):
     """Call each node in a sequence."""
     for node in nodes:
-        node(context)
+        call_node(context, node)
 
 
 def merge_nested_entries(

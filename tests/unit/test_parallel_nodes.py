@@ -44,5 +44,22 @@ def test_call_parallel_node__import_failure(mock_import_module):
 
 
 class TestMapNodes:
-    def test_(self):
-        pass
+    @pytest.fixture
+    def target(self):
+        target = parallel_nodes.MapNode("message", in_var="messages")
+        target.pool_type = Mock(
+            starmap=Mock(
+                lambda node_id, context_data, return_vars: (
+                    node_id,
+                    context_data,
+                    return_vars,
+                )
+            )
+        )
+        # target.loop()
+        return target
+
+    def test_call(self, target):
+        context = WorkflowContext(messages=["foo", "bar", "baz"])
+
+        target(context)
