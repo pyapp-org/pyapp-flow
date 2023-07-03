@@ -1,9 +1,9 @@
 """CLI entry poin.t"""
 
 from pathlib import Path
-from typing import Optional, Mapping
+from typing import Optional
 
-from pyapp.app import CliApplication, Arg
+from pyapp.app import CliApplication, Arg, argument, CommandOptions, KeyValueAction
 
 app = CliApplication(
     description="PyApp Flow",
@@ -14,39 +14,49 @@ main = app.dispatch
 
 
 @app.command
-def run(
-    name: str = Arg(help="Name of workflow"),
-    args: Mapping[str, str] = Arg(help="Key/Value arguments added to flow context"),
-    *,
-    flow_file: Path = Arg(
-        "-f",
-        default=Path("./flowfile.py"),
-        help="Location of flow file; default is ./flowfile.py",
-    ),
-    dry_run: bool = Arg(default=False, help="Dry run; do not execute actions"),
-    full_trace: bool = Arg(default=False, help="Show full trace on error."),
-) -> Optional[int]:
-    """
-    Run a workflow
-    """
+@argument("NAME", help_text="Name of workflow")
+@argument(
+    "ARGS",
+    action=KeyValueAction,
+    nargs="*",
+    help_text="Key/Value arguments added to flow context",
+)
+@argument(
+    "-f",
+    "--flow-file",
+    type=Path,
+    default=Path("./flowfile.py"),
+    help_text="Location of flow file; default is ./flowfile.py",
+)
+@argument(
+    "--dry-run",
+    action="store_true",
+    help_text="Dry run; do not execute actions",
+)
+@argument(
+    "--full-trace",
+    action="store_true",
+    help_text="Show full trace on error.",
+)
+def run(opts: CommandOptions) -> Optional[int]:
+    """Run a workflow."""
     from .actions import run_flow
 
-    return run_flow(flow_file, name, args or {}, dry_run, full_trace)
+    return run_flow(opts.flow_file, opts.NAME, opts.ARGS, opts.dry_run, opts.full_trace)
 
 
-# @app.command
+@app.command
 def graph(
     name: str = Arg(help="Name of workflow"),
     *,
     flow_file: Path = Arg(
         "-f",
+        "--flow-file",
         default=Path("./flowfile.py"),
         help="Location of flow file; default is ./flowfile.py",
     ),
 ) -> Optional[int]:
-    """
-    Graph a workflow.
-    """
+    """Graph a workflow."""
     from .actions import graph_flow
 
     return graph_flow(flow_file, name)
