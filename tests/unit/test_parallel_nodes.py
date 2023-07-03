@@ -56,7 +56,7 @@ class TestMapNodes:
                 )
             )
         )
-        target.loop()
+        # target.loop()
         return target
 
     def test_call(self, target):

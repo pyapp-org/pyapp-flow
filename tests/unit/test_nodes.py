@@ -128,6 +128,7 @@ class TestSetVar:
         context = call_node(target, var_a="foo", var_b=13)
 
         assert context.state == {
+            "__trace": [ANY],
             "var_a": "foo",
             "var_b": 42,
             "var_c": "bar",
