@@ -541,7 +541,7 @@ class ForEach(Navigable):
 
         def _values(values):
             try:
-                return zip(target_vars, values)
+                return dict(zip(target_vars, values))
             except (TypeError, ValueError):
                 raise WorkflowRuntimeError(
                     f"Value {values} from {self.in_var} is not iterable"

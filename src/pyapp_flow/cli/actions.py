@@ -5,6 +5,10 @@ from pathlib import Path
 from typing import Dict
 from types import ModuleType
 
+from rich import print
+from rich.traceback import Traceback
+
+import pyapp_flow
 from pyapp_flow import Workflow, WorkflowContext
 
 log = logging.getLogger(__package__)
@@ -52,7 +56,9 @@ def _resolve_required_args(flow: Workflow) -> Dict[str, type]:
     """Resolve required arguments from a workflow."""
 
 
-def run_flow(flow_file: Path, name: str, args: Dict[str, str], dry_run: bool):
+def run_flow(
+    flow_file: Path, name: str, args: Dict[str, str], dry_run: bool, full_trace: bool
+):
     """
     Run a workflow
     """
@@ -73,8 +79,13 @@ def run_flow(flow_file: Path, name: str, args: Dict[str, str], dry_run: bool):
         flow.execute(context, **args)
 
     except Exception:
-        log.error("Flow Trace:\n%s", context.flow_trace)
-        raise
+        print(context.flow_trace)
+        traceback = Traceback(
+            suppress=() if full_trace else [pyapp_flow],
+            show_locals=True,
+        )
+        print(traceback)
+        return 500
 
 
 def graph_flow(flow_file: Path, name: str):

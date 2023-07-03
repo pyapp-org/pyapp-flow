@@ -94,19 +94,10 @@ def call_node(context: WorkflowContext, node: Callable):
         raise
 
 
-def call_nodes(
-    context: WorkflowContext,
-    nodes: Sequence[Callable],
-    *,
-    use_scope: bool = False,
-):
+def call_nodes(context: WorkflowContext, nodes: Sequence[Callable]):
     """Call each node in a sequence."""
-    if use_scope:
-        with context:
-            call_nodes(context, nodes)
-    else:
-        for node in nodes:
-            call_node(context, node)
+    for node in nodes:
+        call_node(context, node)
 
 
 def merge_nested_entries(

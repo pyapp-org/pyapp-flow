@@ -22,16 +22,17 @@ def run(
         help="Location of flow file; default is ./flowfile.py",
     ),
     dry_run: bool = Arg(default=False, help="Dry run; do not execute actions"),
+    full_trace: bool = Arg(default=False, help="Show full trace on error."),
 ) -> Optional[int]:
     """
     Run a workflow
     """
     from .actions import run_flow
 
-    return run_flow(flow_file, name, args or {}, dry_run)
+    return run_flow(flow_file, name, args or {}, dry_run, full_trace)
 
 
-@app.command
+# @app.command
 def graph(
     name: str = Arg(help="Name of workflow"),
     *,

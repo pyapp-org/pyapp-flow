@@ -3,9 +3,22 @@ from __future__ import annotations
 import abc
 import logging
 from collections import deque
-from typing import Dict, Any, Type, Union, Sequence, Optional, List, Tuple
+
+from typing import (
+    Dict,
+    Any,
+    Type,
+    Union,
+    Sequence,
+    Optional,
+    List,
+    Tuple,
+    Final,
+    Iterable,
+)
 
 Branches = Dict[str, Sequence["Navigable"]]
+TRACE_STATE_KEY: Final[str] = "__trace"
 
 
 class Navigable(abc.ABC):
@@ -25,27 +38,6 @@ class Navigable(abc.ABC):
         return self.name
 
 
-class TraceScope(List[Tuple[Navigable, Dict[str, Any]]]):
-    """List of navigable objects that have been visited in the current scope."""
-
-
-class FlowTrace(List[TraceScope]):
-    """Trace of the visited workflow tree."""
-
-    def __str__(self):
-        lines = []
-        for idx, scope in enumerate(self):
-            for node, branch_args in scope:
-                if branch_args:
-                    branch_args = ", ".join(
-                        f"{k}={v!r}" for k, v in branch_args.items()
-                    )
-                    lines.append(f"{'  ' * idx}- {node.name}: {branch_args}")
-                else:
-                    lines.append(f"{'  ' * idx}- {node.name}")
-        return "\n".join(lines)
-
-
 class State(Dict[str, Any]):
     """Wrapper around dict to support attribute accessors."""
 
@@ -63,6 +55,16 @@ class State(Dict[str, Any]):
             del self[var]
         except KeyError:
             raise AttributeError(f"State has no attribute {var!r}") from None
+
+    def __rich__(self):
+        """Rich repr of state."""
+        from rich.scope import render_scope
+
+        return render_scope(self, title="State Variables", sort_keys=True)
+
+    def copy(self) -> "State":
+        """Copy and return a state instance."""
+        return State((k, v) for k, v in self.items())
 
 
 class StateContext:
@@ -99,6 +101,57 @@ class StateContext:
         return len(self._state_vector)
 
 
+class TraceScope(List[Tuple[Navigable, Dict[str, Any]]]):
+    """List of navigable objects that have been visited in the current scope."""
+
+    def __rich__(self):
+        """Rich repr of trace scope."""
+        from rich.console import Group
+
+        return Group(
+            *(
+                f"[blue]{idx}[/blue]: [green]{node.name}\n"
+                for idx, (node, branch_args) in enumerate(self)
+            )
+        )
+
+
+class FlowTrace(List[State]):
+    """Trace of the visited workflow tree."""
+
+    def __rich__(self):
+        """Rich repr of trace."""
+        from rich.panel import Panel
+        from rich.console import Group
+        from rich.padding import Padding
+
+        panels = []
+        for idx, (trace_scope, state_vars) in enumerate(self.iter_trace()):
+            group = Group(state_vars, trace_scope)
+            panels.append(Padding.indent(group, 2 * idx))
+
+        return Panel(
+            Group(*panels),
+            title="[traceback.title]Flow trace [dim](most recent node last)",
+            border_style="traceback.border",
+            expand=True,
+            width=100,
+            padding=(0, 1),
+        )
+
+    def iter_trace(self) -> Iterable[Tuple[TraceScope, State]]:
+        """Iterate over the trace."""
+        for state in self:
+            trace_scope = state[TRACE_STATE_KEY]
+            state_vars = State((k, v) for k, v in state.items() if k != TRACE_STATE_KEY)
+            yield trace_scope, state_vars
+
+    def scopes(self) -> List[TraceScope]:
+        """Return a list of trace scopes."""
+
+        return [state[TRACE_STATE_KEY] for state in self]
+
+
 class WorkflowContext(StateContext):
     """Current context of the workflow.
 
@@ -123,43 +176,54 @@ class WorkflowContext(StateContext):
 
     """
 
-    __slots__ = ("logger", "flow_trace")
+    __slots__ = ("logger", "_flow_trace")
 
     def __init__(self, logger: logging.Logger = None, **variables):
-        variables["__trace"] = []
+        variables[TRACE_STATE_KEY] = TraceScope()
         super().__init__(variables)
         self.logger = logger or logging.getLogger("pyapp_flow")
-        self.flow_trace: Optional[FlowTrace] = None
+        self._flow_trace: Optional[FlowTrace] = None
 
     @property
     def indent(self) -> str:
         """Spacing based on the current indent level."""
         return "  " * self.depth
 
+    # Tracing #################################################################
+
+    @property
+    def flow_trace(self) -> Optional[FlowTrace]:
+        """Return the current flow trace."""
+        return self._flow_trace
+
+    def capture_trace(self, *, force: bool = False):
+        """Capture trace and location of an exception.
+
+        Unless forced will not overwrite an existing trace.
+        """
+        if not self._flow_trace or force:
+            self._flow_trace = trace = FlowTrace()
+            for scope in self._state_vector:
+                trace.append(scope.copy())
+
     def push_state(self):
         """Push a new state onto the stack."""
         super().push_state()
 
         # Add a trace entry
-        self.state["__trace"] = TraceScope()
+        self.state[TRACE_STATE_KEY] = TraceScope()
 
     def trace(self, node: Navigable):
         """Add a node to the trace."""
-        trace_scope: TraceScope = self.state["__trace"]
+        trace_scope: TraceScope = self.state[TRACE_STATE_KEY]
         trace_scope.append((node, {}))
 
     def set_trace_args(self, args):
         """Set the branch args for the current trace node."""
-        trace_scope: TraceScope = self.state["__trace"]
+        trace_scope: TraceScope = self.state[TRACE_STATE_KEY]
         trace_scope[-1][1].update(args)
 
-    def capture_trace(self):
-        """Capture trace and location of an exception."""
-        trace = FlowTrace()
-        for scope in self._state_vector:
-            trace.append(scope["__trace"])
-        self.flow_trace = trace
-        return trace
+    # Logging #################################################################
 
     def log(self, level: int, msg: str, *args, **kwargs):
         """Log a message to logger indented by the current scope depth."""
