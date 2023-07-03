@@ -11,7 +11,7 @@ from typing import (
 )
 
 from .datastructures import WorkflowContext, Navigable, Branches
-from .functions import extract_inputs, extract_outputs, call_nodes, var_list
+from .functions import extract_inputs, extract_outputs, call_nodes, var_list, call_node
 from .errors import FatalError, WorkflowRuntimeError, SkipStep
 
 Node = Callable[[WorkflowContext], Any]
@@ -85,7 +85,6 @@ class Step(Navigable):
             context.warning(" 🔃 Skipping step: %s", ex)
 
         except FatalError as ex:
-            context.capture_trace()
             context.error("  ⛔ Fatal error raised: %s", ex)
             raise
 
@@ -93,7 +92,6 @@ class Step(Navigable):
             if self.ignore_exceptions and isinstance(ex, self.ignore_exceptions):
                 context.warning("  ❌ Ignoring exception: %s", ex)
             else:
-                context.capture_trace()
                 context.error("  ⛔ Exception raised: %s", ex)
                 raise
 
@@ -263,9 +261,8 @@ class CaptureErrors(Navigable):
 
         with context:
             for node in self._nodes:
-                context.trace(node)
                 try:
-                    node(context)
+                    call_node(context, node)
                 except Exception as ex:
                     if except_types and not isinstance(ex, except_types):
                         raise
