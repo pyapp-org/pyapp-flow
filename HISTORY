@@ -1,3 +1,13 @@
+0.12.0b1
+========
+
+Changes
+-------
+
+- Added tracing support to aid in debugging workflows.
+- Add flowfile.py support for execution of workflows in a repository.
+
+
 0.11.0
 ======
 

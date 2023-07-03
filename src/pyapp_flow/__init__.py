@@ -3,10 +3,11 @@ from typing import Optional
 
 from . import errors as exceptions
 from .datastructures import WorkflowContext, Navigable, Branches
-from .functions import extract_inputs, skip_step
+from .functions import extract_inputs, skip_step, call_nodes
 from .nodes import (
     Node,
     step,
+    inline,
     Step,
     SetVar,
     ForEach,
@@ -41,8 +42,7 @@ class Nodes(Navigable):
         return {"": self._nodes}
 
     def _execute(self, context: WorkflowContext):
-        for node in self._nodes:
-            node(context)
+        call_nodes(context, self._nodes)
 
 
 class Workflow(Nodes):

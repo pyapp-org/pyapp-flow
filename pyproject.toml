@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyapp-flow"
-version = "0.11.0"
+version = "0.12.0b1"
 description = "Application workflow framework"
 authors = ["Tim Savage <tim@savage.company>"]
 license = "BSD-3-Clause"
@@ -25,13 +25,13 @@ packages = [
 ]
 include = ["HISTORY"]
 
+[tool.poetry.scripts]
+flow = "pyapp_flow.cli:main"
+
 [tool.poetry.dependencies]
 python = "^3.8"
 rich = ">=12.4.4,<14.0.0"
-pyapp = {version = "^4.10", optional = true }
-
-[tool.poetry.extras]
-pyapp = ["pyapp"]
+pyapp = "^4.10"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1"
