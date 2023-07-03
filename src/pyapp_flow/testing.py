@@ -1,6 +1,7 @@
 """Helper methods for testing workflows."""
 from typing import Any, Callable
 
+from . import functions
 from .datastructures import WorkflowContext
 
 
@@ -25,5 +26,5 @@ def call_node(
 
     """
     context = WorkflowContext(**context_vars)
-    node(context)
+    functions.call_node(context, node)
     return context
