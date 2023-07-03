@@ -146,11 +146,6 @@ class FlowTrace(List[State]):
             state_vars = State((k, v) for k, v in state.items() if k != TRACE_STATE_KEY)
             yield trace_scope, state_vars
 
-    def scopes(self) -> List[TraceScope]:
-        """Return a list of trace scopes."""
-
-        return [state[TRACE_STATE_KEY] for state in self]
-
 
 class WorkflowContext(StateContext):
     """Current context of the workflow.
