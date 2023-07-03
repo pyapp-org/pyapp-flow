@@ -1,5 +1,7 @@
+"""CLI entry poin.t"""
+
 from pathlib import Path
-from typing import Optional, Dict, Mapping
+from typing import Optional, Mapping
 
 from pyapp.app import CliApplication, Arg
 

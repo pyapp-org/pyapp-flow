@@ -52,10 +52,6 @@ def _resolve_flow(module: ModuleType, name: str) -> Workflow:
         ) from None
 
 
-def _resolve_required_args(flow: Workflow) -> Dict[str, type]:
-    """Resolve required arguments from a workflow."""
-
-
 def run_flow(
     flow_file: Path, name: str, args: Dict[str, str], dry_run: bool, full_trace: bool
 ):
@@ -67,6 +63,13 @@ def run_flow(
     except FileNotFoundError:
         log.error("Flow file not found")
         return 404
+    except Exception:
+        traceback = Traceback(
+            suppress=() if full_trace else [pyapp_flow],
+            show_locals=True,
+        )
+        print(traceback)
+        return 500
 
     try:
         flow = _resolve_flow(flow_module, name)
@@ -85,7 +88,7 @@ def run_flow(
             show_locals=True,
         )
         print(traceback)
-        return 500
+        return 501
 
 
 def graph_flow(flow_file: Path, name: str):
