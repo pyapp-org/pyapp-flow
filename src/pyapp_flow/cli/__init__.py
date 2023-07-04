@@ -1,5 +1,5 @@
-"""CLI entry poin.t"""
-
+"""CLI entry point."""
+from importlib import metadata
 from pathlib import Path
 from typing import Optional
 
@@ -7,6 +7,7 @@ from pyapp.app import CliApplication, Arg, argument, CommandOptions, KeyValueAct
 
 app = CliApplication(
     description="PyApp Flow",
+    version=metadata.version("pyapp-flow"),
     env_loglevel_key="FLOW_LOGLEVEL",
     env_settings_key="FLOW_SETTINGS",
 )

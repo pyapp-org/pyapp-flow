@@ -1,3 +1,4 @@
+"""Actions for the CLI."""
 import importlib.util
 import logging
 import sys
@@ -39,7 +40,7 @@ def _import_flow_file(flow_file: Path) -> ModuleType:
 def _resolve_flow(module: ModuleType, name: str) -> Workflow:
     """Resolve a workflow from a module."""
     flows = {
-        value.name: value
+        key: value
         for key, value in module.__dict__.items()
         if isinstance(value, Workflow)
     }
@@ -55,9 +56,7 @@ def _resolve_flow(module: ModuleType, name: str) -> Workflow:
 def run_flow(
     flow_file: Path, name: str, args: Dict[str, str], dry_run: bool, full_trace: bool
 ):
-    """
-    Run a workflow
-    """
+    """Run a workflow."""
     try:
         flow_module = _import_flow_file(flow_file)
     except FileNotFoundError:
@@ -77,10 +76,12 @@ def run_flow(
         log.error(ex)
         return 404
 
-    context = WorkflowContext(dry_run=dry_run)
+    context = WorkflowContext(
+        dry_run=dry_run,
+        flow_path=flow_file.parent.resolve(),
+    )
     try:
         flow.execute(context, **args)
-
     except Exception:
         print(context.flow_trace)
         traceback = Traceback(
@@ -92,9 +93,7 @@ def run_flow(
 
 
 def graph_flow(flow_file: Path, name: str):
-    """
-    Graph a workflow
-    """
+    """Graph a workflow."""
     try:
         flow_module = _import_flow_file(flow_file)
     except FileNotFoundError:
