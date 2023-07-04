@@ -40,7 +40,7 @@ def _import_flow_file(flow_file: Path) -> ModuleType:
 def _resolve_flow(module: ModuleType, name: str) -> Workflow:
     """Resolve a workflow from a module."""
     flows = {
-        value.name: value
+        key: value
         for key, value in module.__dict__.items()
         if isinstance(value, Workflow)
     }
