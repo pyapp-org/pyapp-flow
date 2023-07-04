@@ -449,6 +449,7 @@ class LogMessage(Navigable):
 
     @property
     def name(self):
+        """Name of node."""
         return f"Log Message {self.message!r}"
 
 
