@@ -439,6 +439,26 @@ class LogMessage(Navigable):
 
     __slots__ = ("message", "level")
 
+    @classmethod
+    def debug(cls, message: str) -> "LogMessage":
+        """Create a log message with level DEBUG."""
+        return cls(message, level=logging.DEBUG)
+
+    @classmethod
+    def info(cls, message: str) -> "LogMessage":
+        """Create a log message with level INFO."""
+        return cls(message, level=logging.INFO)
+
+    @classmethod
+    def warning(cls, message: str) -> "LogMessage":
+        """Create a log message with level WARNING."""
+        return cls(message, level=logging.WARNING)
+
+    @classmethod
+    def error(cls, message: str) -> "LogMessage":
+        """Create a log message with level ERROR."""
+        return cls(message, level=logging.ERROR)
+
     def __init__(self, message: str, *, level: int = logging.INFO):
         self.message = message
         self.level = level
