@@ -114,7 +114,7 @@ def step(
     func=None,
     *,
     name: str = None,
-    output: Sequence[str] = None,
+    output: Union[str, Sequence[str]] = None,
     ignore_exceptions: Union[Type[Exception], Sequence[Type[Exception]]] = None,
 ) -> Union[Callable[[Callable], Step], Step]:
     """Decorate a method turning it into a step"""
