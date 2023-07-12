@@ -465,3 +465,17 @@ class TestLogMessage:
         target = nodes.LogMessage("Foo{who}")
 
         assert str(target) == "Log Message 'Foo{who}'"
+
+    @pytest.mark.parametrize(
+        "target, level",
+        (
+            (nodes.LogMessage("Foo{who}"), logging.INFO),
+            (nodes.LogMessage.debug("Foo{who}"), logging.DEBUG),
+            (nodes.LogMessage.info("Foo{who}"), logging.INFO),
+            (nodes.LogMessage.warning("Foo{who}"), logging.WARNING),
+            (nodes.LogMessage.error("Foo{who}"), logging.ERROR),
+        ),
+    )
+    def test_log_level_methods(self, target, level):
+        assert target.level == level
+        assert target.message == "Foo{who}"
