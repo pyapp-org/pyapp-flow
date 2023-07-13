@@ -569,3 +569,58 @@ class ForEach(Navigable):
                 )
 
         return _values
+
+
+class TryUntil(Navigable):
+    """Try a set of nodes until one of them does not raise an exception.
+
+    .. code-block:: python
+
+        (
+            TryUntil()
+            .nodes(
+                resolve_state_a,
+                resolve_state_b,
+            )
+            .default(
+                fallback_state,
+            )
+        )
+    """
+
+    __slots__ = ("except_types", "_nodes", "_default")
+
+    def __init__(
+        self, except_types: Union[Type[Exception], Sequence[Type[Exception]]] = SkipStep
+    ):
+        self.except_types = except_types
+        self._nodes = []
+        self._default = None
+
+    def __call__(self, context: WorkflowContext):
+        context.info("🔁 %s", self)
+
+        for node in self._nodes:
+            try:
+                call_node(context, node)
+            except self.except_types:
+                continue
+            else:
+                return
+        else:
+            if self._default:
+                call_node(context, self._default)
+
+    @property
+    def name(self) -> str:
+        return f"Try until a node does not raise {self.except_types}"
+
+    def nodes(self, *nodes: Node) -> "TryUntil":
+        """Nodes to try."""
+        self._nodes = nodes
+        return self
+
+    def default(self, node: Node) -> "TryUntil":
+        """Nodes to call if all nodes raise an exception."""
+        self._default = node
+        return self
