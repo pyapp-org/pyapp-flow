@@ -1,3 +1,20 @@
+0.12.0b3
+========
+
+Additions
+---------
+
+- Add TryUntil node for trying multiple nodes until one succeeds.
+
+Changes
+-------
+
+- Add log-level helpers
+- Include that flowfile.py is located on in the workflow context.
+- Use var name to reference workflow from CLI.
+- Fetch version from package info.
+
+
 0.12.0b1
 ========
 

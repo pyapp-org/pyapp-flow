@@ -12,7 +12,7 @@ from typing import (
 
 from .datastructures import WorkflowContext, Navigable, Branches
 from .functions import extract_inputs, extract_outputs, call_nodes, var_list, call_node
-from .errors import FatalError, WorkflowRuntimeError, SkipStep
+from .errors import FatalError, WorkflowRuntimeError, SkipStep, StepFailedError
 
 Node = Callable[[WorkflowContext], Any]
 
@@ -114,7 +114,7 @@ def step(
     func=None,
     *,
     name: str = None,
-    output: Sequence[str] = None,
+    output: Union[str, Sequence[str]] = None,
     ignore_exceptions: Union[Type[Exception], Sequence[Type[Exception]]] = None,
 ) -> Union[Callable[[Callable], Step], Step]:
     """Decorate a method turning it into a step"""
@@ -439,6 +439,26 @@ class LogMessage(Navigable):
 
     __slots__ = ("message", "level")
 
+    @classmethod
+    def debug(cls, message: str) -> "LogMessage":
+        """Create a log message with level DEBUG."""
+        return cls(message, level=logging.DEBUG)
+
+    @classmethod
+    def info(cls, message: str) -> "LogMessage":
+        """Create a log message with level INFO."""
+        return cls(message, level=logging.INFO)
+
+    @classmethod
+    def warning(cls, message: str) -> "LogMessage":
+        """Create a log message with level WARNING."""
+        return cls(message, level=logging.WARNING)
+
+    @classmethod
+    def error(cls, message: str) -> "LogMessage":
+        """Create a log message with level ERROR."""
+        return cls(message, level=logging.ERROR)
+
     def __init__(self, message: str, *, level: int = logging.INFO):
         self.message = message
         self.level = level
@@ -549,3 +569,68 @@ class ForEach(Navigable):
                 )
 
         return _values
+
+
+class TryUntil(Navigable):
+    """Try a set of nodes until one of them does not raise an exception.
+
+    The default behaviour is to catch a :class:`StepFailedError` exception.
+
+    :param except_types: Exception type(s) to catch; defaults to :class:`StepFailedError`.
+
+    .. code-block:: python
+
+        (
+            TryUntil()
+            .nodes(
+                resolve_state_a,
+                resolve_state_b,
+            )
+            .default(
+                fallback_state,
+            )
+        )
+    """
+
+    __slots__ = ("except_types", "_nodes", "_default")
+
+    def __init__(
+        self,
+        except_types: Union[
+            Type[Exception], Sequence[Type[Exception]]
+        ] = StepFailedError,
+    ):
+        self.except_types = except_types
+        self._nodes = []
+        self._default = None
+
+    def __call__(self, context: WorkflowContext):
+        context.info("🔁 %s", self)
+
+        for node in self._nodes:
+            try:
+                call_node(context, node)
+            except self.except_types:
+                continue
+            else:
+                return
+        else:
+            if self._default:
+                call_node(context, self._default)
+
+    @property
+    def name(self) -> str:
+        return f"Try until a node does not raise {self.except_types}"
+
+    def branches(self) -> Optional[Branches]:
+        return {"": self._nodes}
+
+    def nodes(self, *nodes: Node) -> "TryUntil":
+        """Nodes to try."""
+        self._nodes = nodes
+        return self
+
+    def default(self, node: Node) -> "TryUntil":
+        """Nodes to call if all nodes raise an exception."""
+        self._default = node
+        return self

@@ -59,3 +59,10 @@ ForEach
 
 .. autoclass:: pyapp_flow.ForEach
    :members:
+
+
+TryUntil
+--------
+
+.. autoclass:: pyapp_flow.TryUntil
+   :members:

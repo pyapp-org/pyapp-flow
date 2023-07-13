@@ -1,11 +1,11 @@
 import logging
-from typing import Tuple
+from typing import Tuple, List
 from unittest.mock import ANY
 
 import pytest
 
 from pyapp_flow import nodes, WorkflowContext, skip_step
-from pyapp_flow.errors import FatalError, WorkflowRuntimeError
+from pyapp_flow.errors import FatalError, WorkflowRuntimeError, StepFailedError
 from pyapp_flow.testing import call_node
 
 
@@ -171,7 +171,10 @@ class TestForEach:
             call_node(target, var_a=None, var_b=[])
 
     def test_call__in_var_is_multiple_parts(self):
-        target = nodes.ForEach(("key_a", "key_b"), in_var="var_a",).loop(
+        target = nodes.ForEach(
+            ("key_a", "key_b"),
+            in_var="var_a",
+        ).loop(
             nodes.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
         )
 
@@ -180,7 +183,10 @@ class TestForEach:
         assert context.state.var_b == [1, 2, 3]
 
     def test_call__in_var_is_multiple_string(self):
-        target = nodes.ForEach("key_a, key_b", in_var="var_a",).loop(
+        target = nodes.ForEach(
+            "key_a, key_b",
+            in_var="var_a",
+        ).loop(
             nodes.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
         )
 
@@ -193,7 +199,10 @@ class TestForEach:
         assert context.state.var_b == [1, 2, 3]
 
     def test_call__in_var_is_multiple_parts_not_iterable(self):
-        target = nodes.ForEach(("key_a", "key_b"), in_var="var_a",).loop(
+        target = nodes.ForEach(
+            ("key_a", "key_b"),
+            in_var="var_a",
+        ).loop(
             nodes.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
         )
 
@@ -407,7 +416,6 @@ class TestSwitch:
         assert context.state["message"] == ["foo1"]
 
     def test_call__with_invalid_condition(self):
-
         with pytest.raises(TypeError, match="condition not context "):
             nodes.Switch(None)
 
@@ -465,3 +473,57 @@ class TestLogMessage:
         target = nodes.LogMessage("Foo{who}")
 
         assert str(target) == "Log Message 'Foo{who}'"
+
+    @pytest.mark.parametrize(
+        "target, level",
+        (
+            (nodes.LogMessage("Foo{who}"), logging.INFO),
+            (nodes.LogMessage.debug("Foo{who}"), logging.DEBUG),
+            (nodes.LogMessage.info("Foo{who}"), logging.INFO),
+            (nodes.LogMessage.warning("Foo{who}"), logging.WARNING),
+            (nodes.LogMessage.error("Foo{who}"), logging.ERROR),
+        ),
+    )
+    def test_log_level_methods(self, target, level):
+        assert target.level == level
+        assert target.message == "Foo{who}"
+
+
+def track_step(match_value: str) -> nodes.Step:
+    def _step(track: List[str], var_a: str):
+        track.append(match_value)
+        if var_a != match_value:
+            raise StepFailedError()
+
+    return nodes.Step(_step, name="tracking_step")
+
+
+class TestTryUntil:
+    @pytest.fixture
+    def target(self):
+        return (
+            nodes.TryUntil()
+            .nodes(track_step("a"), track_step("b"), track_step("c"))
+            .default(nodes.Append("track", "default"))
+        )
+
+    def test_call__where_first_step_matches(self, target):
+        context = call_node(target, track=[], var_a="a")
+
+        assert context.state["track"] == ["a"]
+
+    def test_call__where_last_step_matches(self, target):
+        context = call_node(target, track=[], var_a="c")
+
+        assert context.state["track"] == ["a", "b", "c"]
+
+    def test_call__where_no_steps_match(self, target):
+        context = call_node(target, track=[], var_a="z")
+
+        assert context.state["track"] == ["a", "b", "c", "default"]
+
+    def test_call__where_other_exception(self, target):
+        target.except_types = (ValueError,)
+
+        with pytest.raises(StepFailedError):
+            call_node(target, track=[], var_a="z")
