@@ -53,6 +53,23 @@ def _resolve_flow(module: ModuleType, name: str) -> Workflow:
         ) from None
 
 
+def list_flows(flow_file: Path):
+    """List workflows in the flow file."""
+    try:
+        flow_module = _import_flow_file(flow_file)
+    except FileNotFoundError:
+        log.error("Flow file not found")
+        return 404
+
+    flows = [
+        f"\n⏩ {key}"
+        for key, value in flow_module.__dict__.items()
+        if isinstance(value, Workflow)
+    ]
+
+    print(f"Available workflows:{''.join(flows)}")
+
+
 def run_flow(
     flow_file: Path, name: str, args: Dict[str, str], dry_run: bool, full_trace: bool
 ):

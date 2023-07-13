@@ -1,5 +1,5 @@
-0.12.0b3
-========
+0.12.0
+======
 
 Additions
 ---------
@@ -13,14 +13,6 @@ Changes
 - Include that flowfile.py is located on in the workflow context.
 - Use var name to reference workflow from CLI.
 - Fetch version from package info.
-
-
-0.12.0b1
-========
-
-Changes
--------
-
 - Added tracing support to aid in debugging workflows.
 - Add flowfile.py support for execution of workflows in a repository.
 
