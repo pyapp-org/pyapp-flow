@@ -12,7 +12,7 @@ from typing import (
 
 from .datastructures import WorkflowContext, Navigable, Branches
 from .functions import extract_inputs, extract_outputs, call_nodes, var_list, call_node
-from .errors import FatalError, WorkflowRuntimeError, SkipStep
+from .errors import FatalError, WorkflowRuntimeError, SkipStep, StepFailedError
 
 Node = Callable[[WorkflowContext], Any]
 
@@ -574,6 +574,10 @@ class ForEach(Navigable):
 class TryUntil(Navigable):
     """Try a set of nodes until one of them does not raise an exception.
 
+    The default behaviour is to catch a :class:`StepFailedError` exception.
+
+    :param except_types: Exception type(s) to catch; defaults to :class:`StepFailedError`.
+
     .. code-block:: python
 
         (
@@ -591,7 +595,10 @@ class TryUntil(Navigable):
     __slots__ = ("except_types", "_nodes", "_default")
 
     def __init__(
-        self, except_types: Union[Type[Exception], Sequence[Type[Exception]]] = SkipStep
+        self,
+        except_types: Union[
+            Type[Exception], Sequence[Type[Exception]]
+        ] = StepFailedError,
     ):
         self.except_types = except_types
         self._nodes = []
@@ -614,6 +621,9 @@ class TryUntil(Navigable):
     @property
     def name(self) -> str:
         return f"Try until a node does not raise {self.except_types}"
+
+    def branches(self) -> Optional[Branches]:
+        return {"": self._nodes}
 
     def nodes(self, *nodes: Node) -> "TryUntil":
         """Nodes to try."""
