@@ -13,7 +13,6 @@ SetVar
 
 .. autoclass:: pyapp_flow.SetVar
 
-
 Append
 ------
 
