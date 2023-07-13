@@ -106,7 +106,7 @@ class Step(Navigable):
 
     @property
     def name(self) -> str:
-        """Return the name of the step"""
+        """Name of the node."""
         return self._name
 
 
@@ -168,6 +168,7 @@ class SetVar(Navigable):
         self.values = values
 
     def __call__(self, context: WorkflowContext):
+        """Call object implementation."""
         context.info("📝 %s", self)
         values = (
             (key, value(context) if callable(value) else value)
@@ -177,6 +178,7 @@ class SetVar(Navigable):
 
     @property
     def name(self):
+        """Name of the node."""
         return f"Set value(s) for {', '.join(self.values)}"
 
 
@@ -204,6 +206,7 @@ class Append(Navigable):
         self.message = message
 
     def __call__(self, context: WorkflowContext):
+        """Call object implementation."""
         message = context.format(self.message)
         try:
             context.state[self.target_var].append(message)
@@ -212,6 +215,7 @@ class Append(Navigable):
 
     @property
     def name(self):
+        """Name of the node."""
         return f"Append {self.message!r} to {self.target_var}"
 
 
@@ -251,6 +255,7 @@ class CaptureErrors(Navigable):
         self.try_all = try_all
 
     def __call__(self, context: WorkflowContext):
+        """Call object implementation."""
         context.info("🥅 %s", self)
         except_types = self.except_types
 
@@ -272,6 +277,7 @@ class CaptureErrors(Navigable):
 
     @property
     def name(self):
+        """Name of the node."""
         return f"Capture errors into `{self.target_var}`"
 
     def branches(self) -> Optional[Branches]:
@@ -322,6 +328,7 @@ class Conditional(Navigable):
         self._false_nodes = None
 
     def __call__(self, context: WorkflowContext):
+        """Call object implementation."""
         condition = self.condition(context)
         context.info("🔀 Condition is %s", condition)
 
@@ -332,6 +339,7 @@ class Conditional(Navigable):
 
     @property
     def name(self):
+        """Name of the node."""
         return f"Conditional branch"
 
     def branches(self) -> Optional[Branches]:
@@ -385,6 +393,7 @@ class Switch(Navigable):
         self._default = None
 
     def __call__(self, context: WorkflowContext):
+        """Call object implementation."""
         value = self.condition(context)
         branch = self._options.get(value, None)
         if branch is None:
@@ -402,6 +411,7 @@ class Switch(Navigable):
 
     @property
     def name(self):
+        """Name of the node."""
         return f"Switch into {', '.join(self._options)}"
 
     def branches(self) -> Optional[Branches]:
@@ -464,12 +474,13 @@ class LogMessage(Navigable):
         self.level = level
 
     def __call__(self, context: WorkflowContext):
+        """Call object implementation."""
         message = context.format(self.message)
         context.log(self.level, message)
 
     @property
     def name(self):
-        """Name of node."""
+        """Name of the node."""
         return f"Log Message {self.message!r}"
 
 
@@ -519,6 +530,7 @@ class ForEach(Navigable):
             self._context_update = self._multiple_value(target_vars)
 
     def __call__(self, context: WorkflowContext):
+        """Call object implementation."""
         context.info("🔁 %s", self)
         try:
             iterable = context.state[self.in_var]
@@ -537,6 +549,7 @@ class ForEach(Navigable):
 
     @property
     def name(self):
+        """Name of the node."""
         target_vars = ", ".join(f"`{var}`" for var in self.target_vars)
         return f"For ({target_vars}) in `{self.in_var}`"
 
@@ -605,6 +618,7 @@ class TryUntil(Navigable):
         self._default = None
 
     def __call__(self, context: WorkflowContext):
+        """Call object implementation."""
         context.info("🔁 %s", self)
 
         for node in self._nodes:
@@ -620,6 +634,7 @@ class TryUntil(Navigable):
 
     @property
     def name(self) -> str:
+        """Name of the node."""
         return f"Try until a node does not raise {self.except_types}"
 
     def branches(self) -> Optional[Branches]:
