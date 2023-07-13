@@ -14,6 +14,22 @@ app = CliApplication(
 main = app.dispatch
 
 
+@app.command(name="list", aliases=("ls",))
+def list_flows(
+    *,
+    flow_file: Path = Arg(
+        "-f",
+        "--flow-file",
+        default=Path("./flowfile.py"),
+        help="Location of flow file; default is ./flowfile.py",
+    ),
+) -> Optional[int]:
+    """List available workflows."""
+    from .actions import list_flows
+
+    return list_flows(flow_file)
+
+
 @app.command
 @argument("NAME", help_text="Name of workflow")
 @argument(
@@ -46,18 +62,18 @@ def run(opts: CommandOptions) -> Optional[int]:
     return run_flow(opts.flow_file, opts.NAME, opts.ARGS, opts.dry_run, opts.full_trace)
 
 
-@app.command
-def graph(
-    name: str = Arg(help="Name of workflow"),
-    *,
-    flow_file: Path = Arg(
-        "-f",
-        "--flow-file",
-        default=Path("./flowfile.py"),
-        help="Location of flow file; default is ./flowfile.py",
-    ),
-) -> Optional[int]:
-    """Graph a workflow."""
-    from .actions import graph_flow
-
-    return graph_flow(flow_file, name)
+# @app.command
+# def graph(
+#     name: str = Arg(help="Name of workflow"),
+#     *,
+#     flow_file: Path = Arg(
+#         "-f",
+#         "--flow-file",
+#         default=Path("./flowfile.py"),
+#         help="Location of flow file; default is ./flowfile.py",
+#     ),
+# ) -> Optional[int]:
+#     """Graph a workflow."""
+#     from .actions import graph_flow
+#
+#     return graph_flow(flow_file, name)
