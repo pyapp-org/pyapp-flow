@@ -18,32 +18,22 @@ from .nodes import (
     LogMessage,
     Append,
     TryUntil,
+    Group,
 )
 
 
-class Nodes(Navigable):
+class Nodes(Group):
     """A series of nodes to be executed on call."""
 
-    __slots__ = ("_nodes",)
-
-    def __init__(self, *nodes_: Node):
-        """Initialise nodes."""
-        self._nodes = list(nodes_)
+    __slots__ = ()
 
     def __call__(self, context: WorkflowContext):
         with context:
             self._execute(context)
 
     @property
-    def name(self):
-        return "Nodes"
-
-    def branches(self) -> Optional[Branches]:
-        """Return branches for this node."""
-        return {"": self._nodes}
-
-    def _execute(self, context: WorkflowContext):
-        call_nodes(context, self._nodes)
+    def name(self) -> str:
+        return f"⏬ {type(self).__name__}"
 
 
 class Workflow(Nodes):
