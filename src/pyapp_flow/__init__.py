@@ -1,5 +1,5 @@
 """Application Workflow"""
-from typing import Optional
+from typing_extensions import Self
 
 from . import errors as exceptions, steps
 from .datastructures import WorkflowContext, Navigable, Branches
@@ -79,7 +79,7 @@ class Workflow(Nodes):
         self._execute(context)
         return context
 
-    def nodes(self, *nodes_: Node) -> "Workflow":
+    def nodes(self, *nodes_: Node) -> Self:
         """Append additional node(s) into the node list.
 
         :param nodes_: Nodes to append to the current block
@@ -88,7 +88,7 @@ class Workflow(Nodes):
         self._nodes.extend(nodes_)
         return self
 
-    def nested(self, *nodes_: Node) -> "Workflow":
+    def nested(self, *nodes_: Node) -> Self:
         """Add nested node(s), nested nodes have their own scope.
 
         :param nodes_: Collection of nodes call from nested block.
@@ -98,7 +98,7 @@ class Workflow(Nodes):
         self._nodes.append(Nodes(*nodes_))
         return self
 
-    def set_vars(self, **kwargs) -> "Workflow":
+    def set_vars(self, **kwargs) -> Self:
         """Set variables to a particular value.
 
         :param kwargs: Key/Value pairs to update in the context

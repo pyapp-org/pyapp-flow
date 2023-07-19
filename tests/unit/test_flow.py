@@ -30,7 +30,7 @@ basic_flow = flow.Nodes(add_args, add_message)
 
 class TestNodes:
     def test_str(self):
-        assert str(basic_flow) == "Nodes"
+        assert str(basic_flow) == "⏬ Nodes"
 
     def test_branches(self):
         actual = basic_flow.branches()

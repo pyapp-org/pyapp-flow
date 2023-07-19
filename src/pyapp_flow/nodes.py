@@ -9,6 +9,7 @@ from typing import (
     Optional,
     Any,
 )
+from typing_extensions import Self
 
 from .datastructures import WorkflowContext, Navigable, Branches
 from .functions import extract_inputs, extract_outputs, call_nodes, var_list, call_node
@@ -312,7 +313,7 @@ class CaptureErrors(Navigable):
     def branches(self) -> Optional[Branches]:
         return {"": tuple(self._nodes)}
 
-    def nodes(self, *nodes: Node):
+    def nodes(self, *nodes: Node) -> Self:
         """Add additional nodes."""
         self._nodes.extend(nodes)
         return self
@@ -374,12 +375,12 @@ class Conditional(Navigable):
     def branches(self) -> Optional[Branches]:
         return {"true": self._true_nodes, "false": self._false_nodes}
 
-    def true(self, *nodes: Node) -> "Conditional":
+    def true(self, *nodes: Node) -> Self:
         """Nodes to use for the true branch."""
         self._true_nodes = nodes
         return self
 
-    def false(self, *nodes: Node) -> "Conditional":
+    def false(self, *nodes: Node) -> Self:
         """Nodes to use for the false branch."""
         self._false_nodes = nodes
         return self
@@ -449,12 +450,12 @@ class Switch(Navigable):
             branches["*DEFAULT*"] = self._default
         return branches
 
-    def case(self, key: Hashable, *nodes: Node) -> "Switch":
+    def case(self, key: Hashable, *nodes: Node) -> Self:
         """Key used to match branch and the nodes that make up the branch."""
         self._options[key] = nodes
         return self
 
-    def default(self, *nodes: Node) -> "Switch":
+    def default(self, *nodes: Node) -> Self:
         """If a case key is not matched use these nodes as the default branch."""
         self._default = nodes
         return self
@@ -585,7 +586,7 @@ class ForEach(Navigable):
     def branches(self) -> Optional[Branches]:
         return {"loop": self._nodes}
 
-    def loop(self, *nodes: Node) -> "ForEach":
+    def loop(self, *nodes: Node) -> Self:
         """Nodes to call on each iteration of the foreach block."""
         self._nodes = nodes
         return self
@@ -669,12 +670,12 @@ class TryUntil(Navigable):
     def branches(self) -> Optional[Branches]:
         return {"": self._nodes}
 
-    def nodes(self, *nodes: Node) -> "TryUntil":
+    def nodes(self, *nodes: Node) -> Self:
         """Nodes to try."""
         self._nodes = nodes
         return self
 
-    def default(self, node: Node) -> "TryUntil":
+    def default(self, node: Node) -> Self:
         """Nodes to call if all nodes raise an exception."""
         self._default = node
         return self
