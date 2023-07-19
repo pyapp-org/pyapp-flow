@@ -9,10 +9,12 @@ from typing import (
     Optional,
     Any,
 )
+from typing_extensions import Self
 
 from .datastructures import WorkflowContext, Navigable, Branches
 from .functions import extract_inputs, extract_outputs, call_nodes, var_list, call_node
 from .errors import FatalError, WorkflowRuntimeError, SkipStep, StepFailedError
+from .helpers import change_log_level
 
 Node = Callable[[WorkflowContext], Any]
 
@@ -141,6 +143,34 @@ def inline(
     """
 
     return Step(func, name, ignore_exceptions=ignore_exceptions)
+
+
+class Group(Navigable):
+    """Group of nodes.
+
+    Useful for creating composable blocks, that don't require variable scope."""
+
+    __slots__ = ("_nodes", "_log_level")
+
+    def __init__(self, *nodes_: Node, log_level: Union[str, int, None] = None):
+        """Initialise nodes."""
+        self._nodes = list(nodes_)
+        self._log_level = log_level
+
+    def __call__(self, context: WorkflowContext):
+        self._execute(context)
+
+    @property
+    def name(self) -> str:
+        return f"🔽 {type(self).__name__}"
+
+    def branches(self) -> Optional[Branches]:
+        """Return branches for this node."""
+        return {"": self._nodes}
+
+    def _execute(self, context: WorkflowContext):
+        with change_log_level(self._log_level):
+            call_nodes(context, self._nodes)
 
 
 class SetVar(Navigable):
@@ -283,7 +313,7 @@ class CaptureErrors(Navigable):
     def branches(self) -> Optional[Branches]:
         return {"": tuple(self._nodes)}
 
-    def nodes(self, *nodes: Node):
+    def nodes(self, *nodes: Node) -> Self:
         """Add additional nodes."""
         self._nodes.extend(nodes)
         return self
@@ -340,17 +370,17 @@ class Conditional(Navigable):
     @property
     def name(self):
         """Name of the node."""
-        return f"Conditional branch"
+        return "Conditional branch"
 
     def branches(self) -> Optional[Branches]:
         return {"true": self._true_nodes, "false": self._false_nodes}
 
-    def true(self, *nodes: Node) -> "Conditional":
+    def true(self, *nodes: Node) -> Self:
         """Nodes to use for the true branch."""
         self._true_nodes = nodes
         return self
 
-    def false(self, *nodes: Node) -> "Conditional":
+    def false(self, *nodes: Node) -> Self:
         """Nodes to use for the false branch."""
         self._false_nodes = nodes
         return self
@@ -420,12 +450,12 @@ class Switch(Navigable):
             branches["*DEFAULT*"] = self._default
         return branches
 
-    def case(self, key: Hashable, *nodes: Node) -> "Switch":
+    def case(self, key: Hashable, *nodes: Node) -> Self:
         """Key used to match branch and the nodes that make up the branch."""
         self._options[key] = nodes
         return self
 
-    def default(self, *nodes: Node) -> "Switch":
+    def default(self, *nodes: Node) -> Self:
         """If a case key is not matched use these nodes as the default branch."""
         self._default = nodes
         return self
@@ -556,7 +586,7 @@ class ForEach(Navigable):
     def branches(self) -> Optional[Branches]:
         return {"loop": self._nodes}
 
-    def loop(self, *nodes: Node) -> "ForEach":
+    def loop(self, *nodes: Node) -> Self:
         """Nodes to call on each iteration of the foreach block."""
         self._nodes = nodes
         return self
@@ -627,7 +657,7 @@ class TryUntil(Navigable):
             except self.except_types:
                 continue
             else:
-                return
+                break
         else:
             if self._default:
                 call_node(context, self._default)
@@ -640,12 +670,12 @@ class TryUntil(Navigable):
     def branches(self) -> Optional[Branches]:
         return {"": self._nodes}
 
-    def nodes(self, *nodes: Node) -> "TryUntil":
+    def nodes(self, *nodes: Node) -> Self:
         """Nodes to try."""
         self._nodes = nodes
         return self
 
-    def default(self, node: Node) -> "TryUntil":
+    def default(self, node: Node) -> Self:
         """Nodes to call if all nodes raise an exception."""
         self._default = node
         return self

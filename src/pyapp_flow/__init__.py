@@ -1,5 +1,5 @@
 """Application Workflow"""
-from typing import Optional
+from typing_extensions import Self
 
 from . import errors as exceptions, steps
 from .datastructures import WorkflowContext, Navigable, Branches
@@ -18,32 +18,22 @@ from .nodes import (
     LogMessage,
     Append,
     TryUntil,
+    Group,
 )
 
 
-class Nodes(Navigable):
+class Nodes(Group):
     """A series of nodes to be executed on call."""
 
-    __slots__ = ("_nodes",)
-
-    def __init__(self, *nodes_: Node):
-        """Initialise nodes."""
-        self._nodes = list(nodes_)
+    __slots__ = ()
 
     def __call__(self, context: WorkflowContext):
         with context:
             self._execute(context)
 
     @property
-    def name(self):
-        return "Nodes"
-
-    def branches(self) -> Optional[Branches]:
-        """Return branches for this node."""
-        return {"": self._nodes}
-
-    def _execute(self, context: WorkflowContext):
-        call_nodes(context, self._nodes)
+    def name(self) -> str:
+        return f"⏬ {type(self).__name__}"
 
 
 class Workflow(Nodes):
@@ -89,7 +79,7 @@ class Workflow(Nodes):
         self._execute(context)
         return context
 
-    def nodes(self, *nodes_: Node) -> "Workflow":
+    def nodes(self, *nodes_: Node) -> Self:
         """Append additional node(s) into the node list.
 
         :param nodes_: Nodes to append to the current block
@@ -98,7 +88,7 @@ class Workflow(Nodes):
         self._nodes.extend(nodes_)
         return self
 
-    def nested(self, *nodes_: Node) -> "Workflow":
+    def nested(self, *nodes_: Node) -> Self:
         """Add nested node(s), nested nodes have their own scope.
 
         :param nodes_: Collection of nodes call from nested block.
@@ -108,7 +98,7 @@ class Workflow(Nodes):
         self._nodes.append(Nodes(*nodes_))
         return self
 
-    def set_vars(self, **kwargs) -> "Workflow":
+    def set_vars(self, **kwargs) -> Self:
         """Set variables to a particular value.
 
         :param kwargs: Key/Value pairs to update in the context

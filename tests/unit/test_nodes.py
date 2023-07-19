@@ -33,6 +33,10 @@ def valid_skip_step():
     skip_step("Skip!")
 
 
+def valid_log_warning(ctx: WorkflowContext):
+    ctx.warning("Castaway")
+
+
 class TestStep:
     def test_init__generates_correct_name(self):
         actual = nodes.Step(valid_step_a, output="arg_t")
@@ -89,6 +93,29 @@ class TestStep:
         target = nodes.Step(valid_skip_step)
 
         target(context)
+
+
+class TestGroup:
+    def test_call(self):
+        target = nodes.Group(
+            nodes.Step(valid_step_a, output="var_c"),
+            nodes.Step(valid_step_a, output="var_d"),
+        )
+
+        context = call_node(target, var_a="foo", var_b=13)
+
+        assert context.state["var_c"] == "foo:13"
+        assert context.state["var_d"] == "foo:13"
+
+    def test_call__where_log_level_is_changed(self, caplog):
+        target = nodes.Group(
+            valid_log_warning,
+            log_level=logging.ERROR,
+        )
+
+        context = call_node(target, var_a="foo", var_b=13)
+
+        assert len(caplog.records) == 0
 
 
 class TestAppend:
@@ -171,10 +198,7 @@ class TestForEach:
             call_node(target, var_a=None, var_b=[])
 
     def test_call__in_var_is_multiple_parts(self):
-        target = nodes.ForEach(
-            ("key_a", "key_b"),
-            in_var="var_a",
-        ).loop(
+        target = nodes.ForEach(("key_a", "key_b"), in_var="var_a",).loop(
             nodes.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
         )
 
@@ -183,10 +207,7 @@ class TestForEach:
         assert context.state.var_b == [1, 2, 3]
 
     def test_call__in_var_is_multiple_string(self):
-        target = nodes.ForEach(
-            "key_a, key_b",
-            in_var="var_a",
-        ).loop(
+        target = nodes.ForEach("key_a, key_b", in_var="var_a",).loop(
             nodes.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
         )
 
@@ -199,10 +220,7 @@ class TestForEach:
         assert context.state.var_b == [1, 2, 3]
 
     def test_call__in_var_is_multiple_parts_not_iterable(self):
-        target = nodes.ForEach(
-            ("key_a", "key_b"),
-            in_var="var_a",
-        ).loop(
+        target = nodes.ForEach(("key_a", "key_b"), in_var="var_a",).loop(
             nodes.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
         )
 

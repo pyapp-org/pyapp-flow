@@ -4,6 +4,20 @@ Builtin Nodes
 
 Nodes are the basic building blocks of Workflows
 
+Collections
+===========
+
+Group
+-----
+
+.. autoclass:: pyapp_flow.Group
+
+
+Nodes
+-----
+
+.. autoclass:: pyapp_flow.Nodes
+
 
 Modify context variables
 ========================
