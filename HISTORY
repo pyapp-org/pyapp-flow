@@ -1,3 +1,23 @@
+0.13.0
+======
+
+Additions
+---------
+
+- Add Group. A group is a set of nodes that are executed but do not
+  get placed in a new variable scope. Useful for building blocks of
+  nodes.
+- Group also includes an option to change the log_level for the duration
+  of the group being executed.
+- Fatal step has been added to trigger a fatal exception to stop the
+  workflow.
+
+Changes
+-------
+
+- Nodes now inherits from Group and includes the log_level option.
+
+
 0.12.0
 ======
 
