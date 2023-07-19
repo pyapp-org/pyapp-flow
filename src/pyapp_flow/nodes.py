@@ -370,7 +370,7 @@ class Conditional(Navigable):
     @property
     def name(self):
         """Name of the node."""
-        return f"Conditional branch"
+        return "Conditional branch"
 
     def branches(self) -> Optional[Branches]:
         return {"true": self._true_nodes, "false": self._false_nodes}
@@ -657,7 +657,7 @@ class TryUntil(Navigable):
             except self.except_types:
                 continue
             else:
-                return
+                break
         else:
             if self._default:
                 call_node(context, self._default)

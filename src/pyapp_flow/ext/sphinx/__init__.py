@@ -91,7 +91,7 @@ class StepDocumenter(ModuleLevelDocumenter):
         self.add_line("", source_name)  # Ensure blank line
 
         if step.inputs:
-            self.add_line(f"**Input Variable(s)**", source_name)
+            self.add_line("**Input Variable(s)**", source_name)
             self._add_variable_lines(step.inputs.items(), source_name)
 
         if step.outputs:
