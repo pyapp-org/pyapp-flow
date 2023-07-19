@@ -13,6 +13,7 @@ from typing import (
 from .datastructures import WorkflowContext, Navigable, Branches
 from .functions import extract_inputs, extract_outputs, call_nodes, var_list, call_node
 from .errors import FatalError, WorkflowRuntimeError, SkipStep, StepFailedError
+from .helpers import change_log_level
 
 Node = Callable[[WorkflowContext], Any]
 
@@ -141,6 +142,34 @@ def inline(
     """
 
     return Step(func, name, ignore_exceptions=ignore_exceptions)
+
+
+class Group(Navigable):
+    """Group of nodes.
+
+    Useful for creating composable blocks, that don't require variable scope."""
+
+    __slots__ = ("_nodes", "_log_level")
+
+    def __init__(self, *nodes_: Node, log_level: Union[str, int, None] = None):
+        """Initialise nodes."""
+        self._nodes = list(nodes_)
+        self._log_level = log_level
+
+    def __call__(self, context: WorkflowContext):
+        self._execute(context)
+
+    @property
+    def name(self) -> str:
+        return f"🔽 {type(self).__name__}"
+
+    def branches(self) -> Optional[Branches]:
+        """Return branches for this node."""
+        return {"": self._nodes}
+
+    def _execute(self, context: WorkflowContext):
+        with change_log_level(self._log_level):
+            call_nodes(context, self._nodes)
 
 
 class SetVar(Navigable):
