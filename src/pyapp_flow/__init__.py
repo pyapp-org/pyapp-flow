@@ -14,6 +14,7 @@ from .nodes import (
     CaptureErrors,
     Conditional,
     If,
+    FeatureEnabled,
     Switch,
     LogMessage,
     Append,

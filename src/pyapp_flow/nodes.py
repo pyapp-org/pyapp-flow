@@ -11,6 +11,8 @@ from typing import (
 )
 from typing_extensions import Self
 
+from pyapp import feature_flags
+
 from .datastructures import WorkflowContext, Navigable, Branches
 from .functions import extract_inputs, extract_outputs, call_nodes, var_list, call_node
 from .errors import FatalError, WorkflowRuntimeError, SkipStep, StepFailedError
@@ -387,6 +389,63 @@ class Conditional(Navigable):
 
 
 If = Conditional
+
+
+class FeatureEnabled(Navigable):
+    """Conditional that checks if a feature-flag is enabled, analogous with an
+    if statement.
+
+    This feature utilises PyApp feature-flags see:
+    https://docs.pyapp.info/en/latest/reference/feature-flags.html
+
+    :param flag: Name of flag
+    :param default: Default flag state
+
+    .. code-block:: python
+
+        (
+            FeatureEnabled("MY-FEATURE")
+            .true(LogMessage("Feature enabled :)"))
+            .false(LogMessage("Feature disabled :("))
+        )
+
+    """
+
+    __slots__ = ("_flag", "_default", "_true_nodes", "_false_nodes")
+
+    def __init__(self, flag: str, *, default: bool = False):
+        self._flag = flag
+        self._default = default
+        self._true_nodes = None
+        self._false_nodes = None
+
+    def __call__(self, context: WorkflowContext):
+        """Call object implementation."""
+        condition = feature_flags.get(self._flag, default=self._default)
+        context.info("🚩 %s is %s", self._flag, "enabled" if condition else "disabled")
+
+        nodes = self._true_nodes if condition else self._false_nodes
+        if nodes:
+            context.set_trace_args({"condition": condition})
+            call_nodes(context, nodes)
+
+    @property
+    def name(self) -> str:
+        """Name of the node."""
+        return f"Feature flag: {self._flag}"
+
+    def branches(self) -> Optional[Branches]:
+        return {"true": self._true_nodes, "false": self._false_nodes}
+
+    def true(self, *nodes: Node) -> Self:
+        """Nodes to use for the true branch."""
+        self._true_nodes = nodes
+        return self
+
+    def false(self, *nodes: Node) -> Self:
+        """Nodes to use for the false branch."""
+        self._false_nodes = nodes
+        return self
 
 
 class Switch(Navigable):

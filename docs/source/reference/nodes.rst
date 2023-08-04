@@ -63,6 +63,12 @@ Switch
 .. autoclass:: pyapp_flow.Switch
    :members:
 
+Feature Flag
+------------
+
+.. autoclass:: pyapp_flow.FeatureFlag
+   :members:
+
 
 Iteration
 =========

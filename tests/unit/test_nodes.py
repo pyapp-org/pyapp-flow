@@ -3,6 +3,7 @@ from typing import Tuple, List
 from unittest.mock import ANY
 
 import pytest
+from pyapp import feature_flags
 
 from pyapp_flow import nodes, WorkflowContext, skip_step
 from pyapp_flow.errors import FatalError, WorkflowRuntimeError, StepFailedError
@@ -392,6 +393,38 @@ class TestConditional:
             "true": (ANY,),
             "false": (ANY,),
         }
+
+
+class TestFeatureEnabled:
+    @pytest.fixture
+    def target(self):
+        return nodes.FeatureEnabled("MY-FEATURE").true(nodes.Append("message", "True")).false(nodes.Append("message", "False"))
+
+    @pytest.fixture
+    def enable_feature(self):
+        state = feature_flags.get("MY-FEATURE")
+        feature_flags.DEFAULT.set("MY-FEATURE", True)
+        yield
+        feature_flags.DEFAULT.set("MY-FEATURE", state)
+    @pytest.fixture
+    def disable_feature(self):
+        state = feature_flags.get("MY-FEATURE")
+        feature_flags.DEFAULT.set("MY-FEATURE", False)
+        yield
+        feature_flags.DEFAULT.set("MY-FEATURE", state)
+
+    def test_call__default_behaviour(self, target):
+        context = call_node(target)
+
+        assert context.state.message == ["False"]
+    def test_call__default_behaviour(self, target, enable_feature):
+        context = call_node(target)
+
+        assert context.state.message == ["True"]
+    def test_call__default_behaviour(self, target, disable_feature):
+        context = call_node(target)
+
+        assert context.state.message == ["False"]
 
 
 class TestSwitch:

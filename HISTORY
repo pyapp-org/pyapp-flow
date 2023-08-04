@@ -1,3 +1,13 @@
+0.14.0
+======
+
+Additions
+---------
+
+- Add FeatureEnabled node to enable/disable a feature based on a
+  PyApp feature-flag.
+
+
 0.13.0
 ======
 
