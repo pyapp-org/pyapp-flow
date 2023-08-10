@@ -233,7 +233,7 @@ class TestForEach:
             nodes.Step(lambda char, var_b: var_b.append(char))
         )
 
-        assert str(target) == "For (`char`) in `var_a`"
+        assert str(target) == "For `char` in `var_a`"
 
     def test_str__multi_value(self):
         target = nodes.ForEach(("key_a", "key_b"), in_var="var_a").loop(
@@ -540,13 +540,39 @@ class TestLogMessage:
         assert target.message == "Foo{who}"
 
 
-def track_step(match_value: str) -> nodes.Step:
+def track_step(*match_values: str) -> nodes.Step:
     def _step(track: List[str], var_a: str):
-        track.append(match_value)
-        if var_a != match_value:
+        track.append(match_values[0])
+        if var_a not in match_values:
             raise StepFailedError()
 
     return nodes.Step(_step, name="tracking_step")
+
+
+class TestTryExcept:
+    @pytest.fixture
+    def target(self):
+        return (
+            nodes.TryExcept(
+                track_step("a", "b", "c"),
+                track_step("b", "a"),
+                track_step("c", "a"),
+            )
+            .except_on(
+                StepFailedError,
+                nodes.Append("track", "except_on"),
+            )
+        )
+
+    def test_call__where_no_exceptions(self, target):
+        context = call_node(target, track=[], var_a="a")
+
+        assert context.state.track == ["a", "b", "c"]
+
+    def test_call__where_exception_is_caught(self, target):
+        context = call_node(target, track=[], var_a="c")
+
+        assert context.state.track == ["a", "b", "except_on"]
 
 
 class TestTryUntil:
@@ -561,17 +587,17 @@ class TestTryUntil:
     def test_call__where_first_step_matches(self, target):
         context = call_node(target, track=[], var_a="a")
 
-        assert context.state["track"] == ["a"]
+        assert context.state.track == ["a"]
 
     def test_call__where_last_step_matches(self, target):
         context = call_node(target, track=[], var_a="c")
 
-        assert context.state["track"] == ["a", "b", "c"]
+        assert context.state.track == ["a", "b", "c"]
 
     def test_call__where_no_steps_match(self, target):
         context = call_node(target, track=[], var_a="z")
 
-        assert context.state["track"] == ["a", "b", "c", "default"]
+        assert context.state.track == ["a", "b", "c", "default"]
 
     def test_call__where_other_exception(self, target):
         target.except_types = (ValueError,)

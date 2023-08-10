@@ -18,6 +18,7 @@ from .nodes import (
     Switch,
     LogMessage,
     Append,
+    TryExcept,
     TryUntil,
     Group,
 )

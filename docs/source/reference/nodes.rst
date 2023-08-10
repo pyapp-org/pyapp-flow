@@ -80,6 +80,16 @@ ForEach
    :members:
 
 
+Error Handling
+==============
+
+TryExcept
+---------
+
+.. autoclass:: pyapp_flow.TryExcept
+   :members:
+
+
 TryUntil
 --------
 

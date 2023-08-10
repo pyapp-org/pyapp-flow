@@ -8,14 +8,15 @@ from typing import (
     Hashable,
     Optional,
     Any,
+    Dict,
 )
 from typing_extensions import Self
 
 from pyapp import feature_flags
 
 from .datastructures import WorkflowContext, Navigable, Branches
-from .functions import extract_inputs, extract_outputs, call_nodes, var_list, call_node
 from .errors import FatalError, WorkflowRuntimeError, SkipStep, StepFailedError
+from .functions import extract_inputs, extract_outputs, call_nodes, var_list, call_node
 from .helpers import change_log_level
 
 Node = Callable[[WorkflowContext], Any]
@@ -362,12 +363,13 @@ class Conditional(Navigable):
     def __call__(self, context: WorkflowContext):
         """Call object implementation."""
         condition = self.condition(context)
-        context.info("🔀 Condition is %s", condition)
+        context.info("🔀 Condition is %s", bool(condition))
 
         nodes = self._true_nodes if condition else self._false_nodes
         if nodes:
             context.set_trace_args({"condition": condition})
-            call_nodes(context, nodes)
+            with context.block_indent():
+                call_nodes(context, nodes)
 
     @property
     def name(self):
@@ -606,12 +608,13 @@ class ForEach(Navigable):
 
     """
 
-    __slots__ = ("target_vars", "in_var", "_nodes", "_update_context")
+    __slots__ = ("target_vars", "in_var", "_nodes", "_loop_label", "_update_context")
 
-    def __init__(self, target_vars: Union[str, Sequence[str]], in_var: str):
+    def __init__(self, target_vars: Union[str, Sequence[str]], in_var: str, *, loop_label: str = None):
         self.target_vars = target_vars = var_list(target_vars)
         self.in_var = in_var
         self._nodes = []
+        self._loop_label = loop_label or f"Next {self.target_vars_name}"
 
         if len(target_vars) == 1:
             self._context_update = self._single_value(target_vars[0])
@@ -629,18 +632,25 @@ class ForEach(Navigable):
         if not isinstance(iterable, Iterable):
             raise WorkflowRuntimeError(f"Variable {self.in_var} is not iterable")
 
-        for value in iterable:
-            pairs = self._context_update(value)
-            context.set_trace_args(pairs)
-            with context:
-                context.state.update(pairs)
-                call_nodes(context, self._nodes)
+        with context.block_indent():
+            for value in iterable:
+                pairs = self._context_update(value)
+                context.set_trace_args(pairs)
+                context.info("🔂 %s", self._loop_label)
+                with context:
+                    context.state.update(pairs)
+                    call_nodes(context, self._nodes)
+
+    @property
+    def target_vars_name(self):
+        """Display value for target vars."""
+        target_vars = ", ".join(f"`{var}`" for var in self.target_vars)
+        return target_vars if len(self.target_vars) == 1 else f"({target_vars})"
 
     @property
     def name(self):
         """Name of the node."""
-        target_vars = ", ".join(f"`{var}`" for var in self.target_vars)
-        return f"For ({target_vars}) in `{self.in_var}`"
+        return f"For {self.target_vars_name} in `{self.in_var}`"
 
     def branches(self) -> Optional[Branches]:
         return {"loop": self._nodes}
@@ -671,6 +681,54 @@ class ForEach(Navigable):
                 )
 
         return _values
+
+
+class TryExcept(Navigable):
+    """Try a set of nodes and catch any exceptions.
+
+    .. code-block:: python
+
+        (
+            TryExcept(
+                resolve_state_a,
+                resolve_state_b,
+            )
+            .except_on(RuntimeError, fallback_state)
+        )
+    """
+
+    __slots__ = ("_nodes", "_exceptions")
+
+    def __init__(self, *nodes: Node):
+        self._nodes = nodes
+        self._exceptions: Dict[Type[Exception], Sequence[Node]] = {}
+        self._finally = None
+
+    def __call__(self, context: WorkflowContext):
+        """Call object implementation."""
+        context.info("🎌 %s", self)
+        with context.block_indent():
+            try:
+                call_nodes(context, self._nodes)
+
+            except tuple(self._exceptions.keys()) as exception:
+                exception_type = type(exception)
+                context.info("🚨 Caught %s", exception_type.__name__)
+                context.state.exception = exception
+                call_nodes(context, self._exceptions[exception_type])
+
+    @property
+    def name(self) -> str:
+        """Name of the node."""
+        return "Try/Except"
+
+    def branches(self) -> Optional[Branches]:
+        return {"": self._nodes}
+
+    def except_on(self, exception: Type[Exception], *nodes: Node) -> Self:
+        """Nodes to call if the exception is raised."""
+        self._exceptions[exception] = nodes
+        return self
 
 
 class TryUntil(Navigable):
