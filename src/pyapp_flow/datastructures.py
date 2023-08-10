@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 import logging
 from collections import deque
-
 from typing import (
     Dict,
     Any,
@@ -164,25 +163,45 @@ class WorkflowContext(StateContext):
         context = WorkflowContext(foo="123")
 
         with context:
-            assert context.state["foo"] == "123"
-            context.state["bar"] == "456"
+            assert context.state.foo == "123"
+            context.state.bar == "456"
 
         assert "bar" not in context.state
 
     """
 
-    __slots__ = ("logger", "_flow_trace")
+    __slots__ = ("logger", "_flow_trace", "_extra_indent")
+
+    class BlockIndentContext:
+        """Context manager to increase the indent level."""
+
+        __slots__ = ("_context",)
+
+        def __init__(self, context: "WorkflowContext"):
+            self._context = context
+
+        def __enter__(self):
+            self._context._extra_indent += 1
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            self._context._extra_indent -= 1
 
     def __init__(self, logger: logging.Logger = None, **variables):
         variables[TRACE_STATE_KEY] = TraceScope()
         super().__init__(variables)
+
         self.logger = logger or logging.getLogger("pyapp_flow")
         self._flow_trace: Optional[FlowTrace] = None
+        self._extra_indent: int = 0
 
     @property
     def indent(self) -> str:
         """Spacing based on the current indent level."""
-        return "  " * self.depth
+        return "  " * (self.depth + self._extra_indent)
+
+    def block_indent(self) -> BlockIndentContext:
+        """Return a context manager to increase the indent level."""
+        return self.BlockIndentContext(self)
 
     # Tracing #################################################################
 
