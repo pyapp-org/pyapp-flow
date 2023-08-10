@@ -1,3 +1,20 @@
+0.15.0
+======
+
+Additions
+---------
+
+- Add TryExcept node to handle errors in a workflow.
+
+Changes
+-------
+
+- ForEach node now shows each loop and allows for custom labels
+  for each loop.
+- Improve indentation of workflow output.
+
+
+
 0.14.0
 ======
 
