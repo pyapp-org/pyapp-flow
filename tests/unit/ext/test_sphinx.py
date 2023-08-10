@@ -195,7 +195,7 @@ else:
                 "",
                 "- Set value(s) for samples",
                 "",
-                "- For (`sample`) in `samples`",
+                "- For `sample` in `samples`",
                 "",
                 "  - **loop**",
                 "",

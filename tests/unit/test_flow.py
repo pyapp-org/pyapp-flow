@@ -65,7 +65,7 @@ sample_flow = (
         flow.If(lambda ctx: ctx.state["arg_1"] < ctx.state["arg_2"]).true(
             add_message("arg_1 is smaller")
         ),
-        flow.ForEach("error", in_var="errors").loop(
+        flow.ForEach("error", in_var="errors", loop_label="error={error}").loop(
             flow.LogMessage("{error}"), add_message("{error}")
         ),
         flow.Switch("arg_1")
