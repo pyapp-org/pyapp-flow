@@ -6,7 +6,10 @@ from .datastructures import WorkflowContext
 
 
 def call_node(
-    node: Callable[[WorkflowContext], Any], **context_vars: Any
+    node: Callable[[WorkflowContext], Any],
+    *,
+    workflow_context: WorkflowContext = None,
+    **context_vars: Any
 ) -> WorkflowContext:
     """Simplifies the testing of any node.
 
@@ -25,6 +28,9 @@ def call_node(
             assert actual == "978-0553283686"
 
     """
-    context = WorkflowContext(**context_vars)
-    functions.call_node(context, node)
-    return context
+    if workflow_context:
+        workflow_context.state.update(context_vars)
+    else:
+        workflow_context = WorkflowContext(**context_vars)
+    functions.call_node(workflow_context, node)
+    return workflow_context

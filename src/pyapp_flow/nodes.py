@@ -153,11 +153,12 @@ class Group(Navigable):
 
     Useful for creating composable blocks, that don't require variable scope."""
 
-    __slots__ = ("_nodes", "_log_level")
+    __slots__ = ("_nodes", "_finally_nodes", "_log_level")
 
     def __init__(self, *nodes_: Node, log_level: Union[str, int, None] = None):
         """Initialise nodes."""
         self._nodes = list(nodes_)
+        self._finally_nodes = None
         self._log_level = log_level
 
     def __call__(self, context: WorkflowContext):
@@ -167,13 +168,27 @@ class Group(Navigable):
     def name(self) -> str:
         return f"🔽 {type(self).__name__}"
 
+    def and_finally(self, *nodes) -> Self:
+        """Nodes that are always called even if an exception is raised.
+
+        This is analogous to a ``finally`` block."""
+        self._finally_nodes = nodes
+        return self
+
     def branches(self) -> Optional[Branches]:
         """Return branches for this node."""
-        return {"": self._nodes}
+        if self._finally_nodes:
+            return {"": self._nodes + self._finally_nodes}
+        else:
+            return {"": self._nodes}
 
     def _execute(self, context: WorkflowContext):
         with change_log_level(self._log_level):
-            call_nodes(context, self._nodes)
+            try:
+                call_nodes(context, self._nodes)
+            finally:
+                if self._finally_nodes:
+                    call_nodes(context, self._finally_nodes)
 
 
 class SetVar(Navigable):
@@ -712,10 +727,14 @@ class TryExcept(Navigable):
                 call_nodes(context, self._nodes)
 
             except tuple(self._exceptions.keys()) as exception:
-                exception_type = type(exception)
-                context.info("🚨 Caught %s", exception_type.__name__)
+                context.info("🚨 Caught %s", type(exception).__name__)
                 context.state.exception = exception
-                call_nodes(context, self._exceptions[exception_type])
+
+                # Call first matching set of nodes
+                for exception_type, nodes in self._exceptions.items():
+                    if isinstance(exception, exception_type):
+                        call_nodes(context, self._exceptions[exception_type])
+                        break
 
     @property
     def name(self) -> str:

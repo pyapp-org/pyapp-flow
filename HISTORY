@@ -1,3 +1,23 @@
+0.16.0
+======
+
+Additions
+---------
+
+- Add ``and_finally`` option to the Group (and derived) nodes. This provides a way
+  to execute nodes to clean up after a workflow has completed successfully or
+  an exception was raised.
+
+Changes
+-------
+
+- testing.call_node now accepts a workflow context. This allows for inspection
+  of the context if an exception is raised.
+- Fix the inheritance of exceptions. All RunTime exceptions are now based off
+  of ``WorkflowRuntimeError``.
+- ``TryExcept`` now resolves nodes called after an exception taking subclasses
+  into account. This matches the behaviour of Python itself.
+
 0.15.0
 ======
 
