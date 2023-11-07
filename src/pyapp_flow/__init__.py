@@ -1,11 +1,16 @@
 """Application Workflow"""
-from typing import Any, Optional, Type
+from typing import Optional, Type
 
 from typing_extensions import Self
 
 from . import errors as exceptions, steps
 from .datastructures import WorkflowContext, Navigable, Branches
-from .functions import extract_inputs, skip_step, call_nodes
+from .functions import (
+    extract_inputs,
+    skip_step,
+    call_nodes,
+    required_variables_in_context,
+)
 from .nodes import (
     Node,
     step,
@@ -59,20 +64,8 @@ class Workflow(Nodes):
     def __call__(self, context: WorkflowContext):
         context.info("⏩ Workflow: `%s`", context.format(self._name))
         with context:
+            required_variables_in_context(self.name, self._required_vars, context)
             self._execute(context)
-
-    def _execute(self, context: WorkflowContext):
-        """Override execute to check for required variables."""
-        for var_name, var_type in self._required_vars:
-            try:
-                var_value = context.state[var_name]
-            except KeyError:
-                raise exceptions.MissingVariableError(var_name) from None
-
-            if var_type is not Any and not isinstance(var_value, var_type):
-                raise exceptions.VariableTypeError(var_name, var_type)
-
-        super()._execute(context)
 
     @property
     def name(self):
@@ -94,6 +87,7 @@ class Workflow(Nodes):
         context = context or WorkflowContext(dry_run=dry_run)
         context.state.update(context_vars)
         context.info("⏩ Workflow: `%s`", self._name)
+        required_variables_in_context(self.name, self._required_vars, context)
         self._execute(context)
         return context
 
