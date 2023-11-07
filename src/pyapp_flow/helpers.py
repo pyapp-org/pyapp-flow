@@ -18,3 +18,14 @@ def change_log_level(level: Union[int, str, None], *, logger: logging.Logger = N
             yield
         finally:
             logger.setLevel(old_level)
+
+
+def human_join_strings(items, *, conjunction: str = "and", empty: str = ""):
+    """Join a list of strings with a human-readable conjunction."""
+    if not items:
+        return empty
+
+    if len(items) == 1:
+        return items[0]
+
+    return f"{', '.join(items[:-1])} {conjunction} {items[-1]}"
