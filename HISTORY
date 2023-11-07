@@ -1,3 +1,14 @@
+0.16.0
+======
+
+Additions
+---------
+
+- Add required_vars option to Workflows to ensure that required variables
+  are set before the workflow is executed.
+- Integrate required_vars into CLI.
+
+
 0.15.0
 ======
 
