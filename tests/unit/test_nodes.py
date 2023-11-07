@@ -118,6 +118,21 @@ class TestGroup:
 
         assert len(caplog.records) == 0
 
+    def test_call__where_an_error_is_raised_with_always_nodes(self):
+        context = WorkflowContext()
+        target = nodes.Group(
+            nodes.Append("messages", "foo"),
+            nodes.inline(valid_raise_exception),
+            nodes.Append("messages", "eek"),
+        ).and_finally(
+            nodes.Append("messages", "bar"),
+        )
+
+        with pytest.raises(KeyError):
+            call_node(target, workflow_context=context)
+
+        assert context.state.messages == ["foo", "bar"]
+
 
 class TestAppend:
     def test_call__with_existing_variable(self):
@@ -417,11 +432,13 @@ class TestFeatureEnabled:
         context = call_node(target)
 
         assert context.state.message == ["False"]
-    def test_call__default_behaviour(self, target, enable_feature):
+
+    def test_call__default_behaviour__where_feature_enabled(self, target, enable_feature):
         context = call_node(target)
 
         assert context.state.message == ["True"]
-    def test_call__default_behaviour(self, target, disable_feature):
+
+    def test_call__default_behaviour__where_feature_disabled(self, target, disable_feature):
         context = call_node(target)
 
         assert context.state.message == ["False"]
@@ -570,6 +587,23 @@ class TestTryExcept:
         assert context.state.track == ["a", "b", "c"]
 
     def test_call__where_exception_is_caught(self, target):
+        context = call_node(target, track=[], var_a="c")
+
+        assert context.state.track == ["a", "b", "except_on"]
+
+    def test_call__where_exception_is_subclass(self):
+        target = (
+            nodes.TryExcept(
+                track_step("a", "b", "c"),
+                track_step("b", "a"),
+                track_step("c", "a"),
+            )
+            .except_on(
+                WorkflowRuntimeError,
+                nodes.Append("track", "except_on"),
+            )
+        )
+
         context = call_node(target, track=[], var_a="c")
 
         assert context.state.track == ["a", "b", "except_on"]
