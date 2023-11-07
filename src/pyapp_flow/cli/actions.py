@@ -3,14 +3,14 @@ import importlib.util
 import logging
 import sys
 from pathlib import Path
-from typing import Dict
 from types import ModuleType
+from typing import Dict
 
 from rich import print
 from rich.traceback import Traceback
 
 import pyapp_flow
-from pyapp_flow import Workflow, WorkflowContext
+from pyapp_flow import Workflow, WorkflowContext, errors
 
 log = logging.getLogger(__package__)
 
@@ -78,20 +78,20 @@ def run_flow(
         flow_module = _import_flow_file(flow_file)
     except FileNotFoundError:
         log.error("Flow file not found")
-        return 404
+        return 13
     except Exception:
         traceback = Traceback(
             suppress=() if full_trace else [pyapp_flow],
             show_locals=True,
         )
         print(traceback)
-        return 500
+        return 1
 
     try:
         flow = _resolve_flow(flow_module, name)
     except RuntimeError as ex:
         log.error(ex)
-        return 404
+        return 13
 
     context = WorkflowContext(
         dry_run=dry_run,
@@ -99,6 +99,13 @@ def run_flow(
     )
     try:
         flow.execute(context, **args)
+
+    except errors.VariableError as ex:
+        if context.flow_trace:
+            print(context.flow_trace)
+        print(f"{flow.name} {ex}")
+        return 1
+
     except Exception:
         print(context.flow_trace)
         traceback = Traceback(
@@ -106,7 +113,7 @@ def run_flow(
             show_locals=True,
         )
         print(traceback)
-        return 501
+        return 1
 
 
 def graph_flow(flow_file: Path, name: str):
