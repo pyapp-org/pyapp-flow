@@ -1,5 +1,7 @@
-from typing import List
+from typing import List, Any
 from unittest.mock import ANY
+
+import pytest
 
 import pyapp_flow as flow
 
@@ -45,6 +47,7 @@ sub_flow = flow.Workflow(name="Sub Flow").nodes(
 
 sample_flow = (
     flow.Workflow(name="Sample Flow")
+    .require_vars(arg_3=int, arg_4=Any)
     .set_vars(
         messages=[],
         arg_1=13,
@@ -58,7 +61,10 @@ sample_flow = (
     )
     .nested(add_message("nested"))
     .nodes(
-        flow.CaptureErrors("errors", try_all=True,).nodes(
+        flow.CaptureErrors(
+            "errors",
+            try_all=True,
+        ).nodes(
             raise_error(ValueError("Error A")),
             raise_error(ValueError("Error B")),
         ),
@@ -83,7 +89,7 @@ sample_flow = (
 
 class TestWorkflow:
     def test_workflow(self):
-        actual = sample_flow.execute()
+        actual = sample_flow.execute(arg_3=69, arg_4="hello")
 
         assert actual.state["messages"] == [
             "single",
@@ -95,6 +101,14 @@ class TestWorkflow:
             "Error B",
             "it's 13",
         ]
+
+    def test_workflow__where_required_var_is_not_defined(self):
+        with pytest.raises(flow.errors.MissingVariableError):
+            sample_flow.execute(arg_4="hello")
+
+    def test_workflow__where_required_var_is_incorrect_type(self):
+        with pytest.raises(flow.errors.VariableTypeError):
+            sample_flow.execute(arg_3="not an int", arg_4="hello")
 
     def test_str(self):
         assert str(sub_flow) == "Sub Flow"

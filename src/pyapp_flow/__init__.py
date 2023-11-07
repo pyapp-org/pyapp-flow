@@ -1,4 +1,6 @@
 """Application Workflow"""
+from typing import Any, Optional, Type
+
 from typing_extensions import Self
 
 from . import errors as exceptions, steps
@@ -46,17 +48,31 @@ class Workflow(Nodes):
         workflow.
     """
 
-    __slots__ = ("_name", "description")
+    __slots__ = ("_name", "description", "_required_vars")
 
     def __init__(self, name: str, description: str = None):
         super().__init__()
         self._name = name
         self.description = description
+        self._required_vars = tuple()
 
     def __call__(self, context: WorkflowContext):
         context.info("⏩ Workflow: `%s`", context.format(self._name))
         with context:
             self._execute(context)
+
+    def _execute(self, context: WorkflowContext):
+        """Override execute to check for required variables."""
+        for var_name, var_type in self._required_vars:
+            try:
+                var_value = context.state[var_name]
+            except KeyError:
+                raise exceptions.MissingVariableError(var_name) from None
+
+            if var_type is not Any and not isinstance(var_value, var_type):
+                raise exceptions.VariableTypeError(var_name, var_type)
+
+        super()._execute(context)
 
     @property
     def name(self):
@@ -108,4 +124,16 @@ class Workflow(Nodes):
 
         """
         self._nodes.append(SetVar(**kwargs))
+        return self
+
+    def require_vars(self, **kwargs: Optional[Type]) -> Self:
+        """Require variables to be present in the context.
+
+        If any type can be used, use ``typing.Any`` as the type.
+
+        :param kwargs: Key/Type pairs to check in the context.
+        :return: Returns self; fluent interface
+
+        """
+        self._required_vars = tuple(kwargs.items())
         return self
