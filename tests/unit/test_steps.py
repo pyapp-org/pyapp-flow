@@ -1,7 +1,6 @@
 import pytest
-
-from pyapp_flow import steps
-from pyapp_flow.errors import StepFailedError, FatalError
+from pyapp_flow import nodes, steps
+from pyapp_flow.errors import FatalError, StepFailedError
 from pyapp_flow.testing import call_node
 
 
@@ -17,3 +16,13 @@ def test_fatal():
 
     with pytest.raises(FatalError, match="Fatal error as test is not set"):
         call_node(target, my_var="test")
+
+
+def test_alias():
+    target = nodes.SetVar(new_var=steps.alias("old_var"))
+
+    context = call_node(target, old_var="foo")
+
+    actual = context.state.new_var
+
+    assert actual == "foo"
