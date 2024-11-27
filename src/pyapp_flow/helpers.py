@@ -31,12 +31,12 @@ def human_join_strings(items, *, conjunction: str = "and", empty: str = ""):
     return f"{', '.join(items[:-1])} {conjunction} {items[-1]}"
 
 
-SENSITIVE_WORDS = ("credentials", "authorization", "token", "secret", "password")
+SENSITIVE_WORDS = ("credential", "authorization", "token", "secret", "password")
 
 
 def set_sensitive_words(sensitive_words: tuple[str, ...]):
     global SENSITIVE_WORDS
-    SENSITIVE_WORDS = sensitive_words
+    SENSITIVE_WORDS = tuple(sensitive_words)
 
 
 def mask_keys(d: dict[str, Any], *, sensitive_words: tuple[str, ...] | None = None):
