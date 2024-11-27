@@ -16,6 +16,8 @@ from typing import (
     Iterable,
 )
 
+from .helpers import mask_keys
+
 Branches = Dict[str, Sequence["Navigable"]]
 TRACE_STATE_KEY: Final[str] = "__trace"
 
@@ -59,7 +61,7 @@ class State(Dict[str, Any]):
         """Rich repr of state."""
         from rich.scope import render_scope
 
-        return render_scope(self, title="State Variables", sort_keys=True)
+        return render_scope(mask_keys(self), title="State Variables", sort_keys=True)
 
     def copy(self) -> "State":
         """Copy and return a state instance."""

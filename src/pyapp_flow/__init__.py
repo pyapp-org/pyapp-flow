@@ -1,26 +1,38 @@
 """Application Workflow"""
+
+from typing import Optional, Type
+
 from typing_extensions import Self
 
-from . import errors as exceptions, steps
-from .datastructures import WorkflowContext, Navigable, Branches
-from .functions import extract_inputs, skip_step, call_nodes
+from . import errors as exceptions
+from . import steps
+from .datastructures import Branches, Navigable, WorkflowContext
+from .functions import (
+    call_nodes,
+    extract_inputs,
+    required_variables_in_context,
+    skip_step,
+)
 from .nodes import (
-    Node,
-    step,
-    inline,
-    Step,
-    SetVar,
-    ForEach,
+    Append,
     CaptureErrors,
     Conditional,
-    If,
     FeatureEnabled,
-    Switch,
+    ForEach,
+    Group,
+    If,
     LogMessage,
-    Append,
+    Node,
+    SetVar,
+    Step,
+    Switch,
     TryExcept,
     TryUntil,
-    Group,
+    inline,
+    step,
+)
+from .steps import (
+    alias,
 )
 
 
@@ -46,16 +58,18 @@ class Workflow(Nodes):
         workflow.
     """
 
-    __slots__ = ("_name", "description")
+    __slots__ = ("_name", "description", "_required_vars")
 
     def __init__(self, name: str, description: str = None):
         super().__init__()
         self._name = name
         self.description = description
+        self._required_vars = tuple()
 
     def __call__(self, context: WorkflowContext):
         context.info("⏩ Workflow: `%s`", context.format(self._name))
         with context:
+            required_variables_in_context(self.name, self._required_vars, context)
             self._execute(context)
 
     @property
@@ -78,6 +92,7 @@ class Workflow(Nodes):
         context = context or WorkflowContext(dry_run=dry_run)
         context.state.update(context_vars)
         context.info("⏩ Workflow: `%s`", self._name)
+        required_variables_in_context(self.name, self._required_vars, context)
         self._execute(context)
         return context
 
@@ -108,4 +123,16 @@ class Workflow(Nodes):
 
         """
         self._nodes.append(SetVar(**kwargs))
+        return self
+
+    def require_vars(self, **kwargs: Optional[Type]) -> Self:
+        """Require variables to be present in the context.
+
+        If any type can be used, use ``typing.Any`` as the type.
+
+        :param kwargs: Key/Type pairs to check in the context.
+        :return: Returns self; fluent interface
+
+        """
+        self._required_vars = tuple(kwargs.items())
         return self

@@ -9,12 +9,20 @@ def test_run_flow__where_flow_is_successful(fixture_path):
     assert result is None
 
 
+def test_run_flow__where_required_variables_not_supplied(fixture_path):
+    flow_file = fixture_path / "flows" / "valid.py"
+
+    result = actions.run_flow(flow_file, "my_flow", {}, False, False)
+
+    assert result == 1
+
+
 def test_run_flow__where_flow_is_not_found_in_flowfile(fixture_path):
     flow_file = fixture_path / "flows" / "valid.py"
 
     result = actions.run_flow(flow_file, "eek", {}, False, False)
 
-    assert result == 404
+    assert result == 13
 
 
 def test_run_flow__where_flowfile_is_invalid(fixture_path):
@@ -22,7 +30,7 @@ def test_run_flow__where_flowfile_is_invalid(fixture_path):
 
     result = actions.run_flow(flow_file, "eek", {}, False, False)
 
-    assert result == 500
+    assert result == 1
 
 
 def test_run_flow__where_flowfile_is_not_found(fixture_path):
@@ -30,7 +38,7 @@ def test_run_flow__where_flowfile_is_not_found(fixture_path):
 
     result = actions.run_flow(flow_file, "my_flow", {}, False, False)
 
-    assert result == 404
+    assert result == 13
 
 
 def test_run_flow__where_flowfile_is_bad(fixture_path):
@@ -38,4 +46,4 @@ def test_run_flow__where_flowfile_is_bad(fixture_path):
 
     result = actions.run_flow(flow_file, "my_flow", {}, False, False)
 
-    assert result == 501
+    assert result == 1

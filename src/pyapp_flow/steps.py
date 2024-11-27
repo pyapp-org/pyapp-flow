@@ -1,7 +1,8 @@
 """Builtin flow steps."""
+
 from .datastructures import WorkflowContext
-from .nodes import step, Step
-from .errors import StepFailedError, FatalError
+from .errors import FatalError, StepFailedError
+from .nodes import Step, step
 
 
 def failed(message: str) -> Step:
@@ -42,5 +43,23 @@ def fatal(message: str) -> Step:
     @step
     def _step(context: WorkflowContext):
         raise FatalError(context.format(message))
+
+    return _step
+
+
+def alias(variable: str) -> Step:
+    """Read a variable from the context.
+
+    Simplifies aliasing variables using ``set_var``
+
+    ..code-block:: python
+
+        SetVar(new_var=alias("old_var"))
+
+    """
+
+    @step
+    def _step(context: WorkflowContext):
+        return context.state[variable]
 
     return _step

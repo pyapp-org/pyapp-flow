@@ -1,7 +1,13 @@
-from typing import Callable, Mapping, Tuple, Sequence, Union, Iterable
+from typing import Callable, Mapping, Tuple, Sequence, Union, Iterable, Any
 
 from .datastructures import WorkflowContext
-from .errors import WorkflowSetupError, SkipStep
+from .errors import (
+    WorkflowSetupError,
+    SkipStep,
+    MissingVariableError,
+    VariableTypeError,
+)
+from .helpers import human_join_strings
 
 
 def skip_step(message: str):
@@ -119,3 +125,34 @@ def merge_nested_entries(
             merge_method(value)
 
     return results
+
+
+def required_variables_in_context(
+    node_name: str,
+    required_vars: Sequence[Tuple[str, type]],
+    context: WorkflowContext,
+):
+    """Check all variables are in the context."""
+    missing = []
+    invalid_types = []
+
+    for var_name, var_type in required_vars:
+        try:
+            value = context.state[var_name]
+        except KeyError:
+            missing.append(var_name)
+        else:
+            if var_type is not Any and not isinstance(value, var_type):
+                invalid_types.append(var_name)
+
+    if missing:
+        raise MissingVariableError(
+            f"{node_name} missing {len(missing)} required context variable: "
+            f"{human_join_strings(missing)}"
+        )
+
+    if invalid_types:
+        raise VariableTypeError(
+            f"{node_name} has {len(invalid_types)} context variable(s) with invalid types: "
+            f"{human_join_strings(invalid_types)}"
+        )

@@ -5,6 +5,18 @@ class WorkflowException(Exception):
     pass
 
 
+class VariableError(WorkflowException, TypeError):
+    """Common error for variables."""
+
+
+class MissingVariableError(VariableError):
+    """Variable not found in context."""
+
+
+class VariableTypeError(VariableError):
+    """Variable type is invalid."""
+
+
 class WorkflowSetupError(WorkflowException):
     """Error setting up workflow"""
 
