@@ -725,13 +725,13 @@ files = [
 
 [[package]]
 name = "pyapp"
-version = "4.16"
+version = "4.16.1"
 description = "A Python application framework - Let us handle the boring stuff!"
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "pyapp-4.16-py3-none-any.whl", hash = "sha256:8217ce9b51d458a94a1f0a3bc15d90164e495e8a9f2f197ba203b1fbab9d2505"},
-    {file = "pyapp-4.16.tar.gz", hash = "sha256:0247b8f074bdbb9ac8719a8c1bda59ea4668085ac0d409b262c6699c30dee7aa"},
+    {file = "pyapp-4.16.1-py3-none-any.whl", hash = "sha256:6023fee12f99293650c74d2748bc2e5e70216e6780c61f8c5a43af16d8270752"},
+    {file = "pyapp-4.16.1.tar.gz", hash = "sha256:48d52bc2a2f0a676dbdc71b4e78d59f88f0da31bfd1badde5d60476bb479ad54"},
 ]
 
 [package.dependencies]
