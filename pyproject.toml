@@ -37,7 +37,7 @@ typing-extensions = "^4.0"
 [tool.poetry.dev-dependencies]
 pytest = "^7.1"
 pytest-cov = "^4.0"
-Cython = "^0.29"
+Cython = "^3.0"
 sphinx = "*"
 
 [build-system]
