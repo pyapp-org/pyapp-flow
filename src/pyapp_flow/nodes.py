@@ -230,6 +230,45 @@ class SetVar(Navigable):
         return f"Set value(s) for {', '.join(self.values)}"
 
 
+class DefaultVar(Navigable):
+    """Set context variable to specified values if not already set.
+
+    :param values: Key/Value pairs or Key/Vallable pairs to be applied to the context
+                   if key is not already defined.
+
+    .. code-block:: python
+
+        DefaultVar(
+            title="Hyperion",
+            published=datetime.date(1996, 11, 1),
+            updated=inline(lambda: datetime.datetime.now())
+        )
+    """
+
+    __slots__ = ("values", )
+
+    def __init__(
+        self,
+        **values: Any | Callable[[WorkflowContext], Any],
+    ):
+        self.values = values
+
+    def __call__(self, context: WorkflowContext):
+        """Call object implementation."""
+        context.info("📝 %s", self)
+        values = [
+                (key, value(context) if callable(value) else value)
+                 for key, value in self.values.items()
+                if key not in context.state
+        ]
+        context.state.update(values)
+        
+    @property
+    def name(self):
+        """Name of the node"""
+        return f"Default value(s) for {', '.join(self.values)}"
+
+
 class Append(Navigable):
     """Append a message to a list.
 

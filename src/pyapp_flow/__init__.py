@@ -17,6 +17,7 @@ from .nodes import (
     Append,
     CaptureErrors,
     Conditional,
+    DefaultVar,
     FeatureEnabled,
     ForEach,
     Group,
@@ -60,7 +61,7 @@ class Workflow(Nodes):
 
     __slots__ = ("_name", "description", "_required_vars")
 
-    def __init__(self, name: str, description: str = None):
+    def __init__(self, name: str, description: str | None = None):
         super().__init__()
         self._name = name
         self.description = description
@@ -123,6 +124,16 @@ class Workflow(Nodes):
 
         """
         self._nodes.append(SetVar(**kwargs))
+        return self
+
+    def default_vars(self, **kwargs) -> Self:
+        """Default variables to a particular value.
+
+        :param kwargs: Key/Value pairs to update in the context
+        :return: Returns self; fluent interface
+
+        """
+        self._nodes.append(DefaultVar(**kwargs))
         return self
 
     def require_vars(self, **kwargs: Optional[Type]) -> Self:
