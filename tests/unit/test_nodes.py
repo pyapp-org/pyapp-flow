@@ -184,6 +184,39 @@ class TestSetVar:
         assert str(target) == "Set value(s) for var_b, var_c"
 
 
+
+class TestDefaultVar:
+    @pytest.fixture
+    def target(self):
+        return nodes.DefaultVar(
+            var_b=42, var_c="bar", var_d=lambda ctx: ctx.state["var_a"] + "bar"
+        )
+
+    def test_call__with_value(self, target):
+        context = call_node(target, var_a="foo", var_b=13)
+
+        assert context.state == {
+            "__trace": [ANY],
+            "var_a": "foo",
+            "var_b": 13,
+            "var_c": "bar",
+            "var_d": "foobar",
+        }
+
+    def test_call__with_value(self, target):
+        context = call_node(target, var_d="eek")
+
+        assert context.state == {
+            "__trace": [ANY],
+            "var_b": 42,
+            "var_c": "bar",
+            "var_d": "eek",
+        }
+
+    def test_str(self, target):
+        assert str(target) == "Default value(s) for var_b, var_c, var_d"
+
+
 class TestForEach:
     def test_call__each_item_is_called(self):
         target = nodes.ForEach("char", in_var="var_a").loop(
