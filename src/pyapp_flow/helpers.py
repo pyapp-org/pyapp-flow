@@ -50,4 +50,3 @@ def mask_keys(d: dict[str, Any], *, sensitive_words: tuple[str, ...] | None = No
         return value
 
     return {key: _mask(key, value) for key, value in d.items()}
-

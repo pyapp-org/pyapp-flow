@@ -1,6 +1,7 @@
 """
 Sphinx documentation generation for Steps
 """
+
 from typing import cast, Any, Optional, List, Iterable, Tuple, Type, Sequence
 
 from sphinx.ext.autodoc import ModuleLevelDocumenter, bool_option

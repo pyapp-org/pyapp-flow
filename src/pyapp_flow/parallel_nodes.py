@@ -1,4 +1,5 @@
 """Parallel Nodes"""
+
 import importlib
 import enum
 from functools import cached_property
