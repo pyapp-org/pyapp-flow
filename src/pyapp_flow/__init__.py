@@ -25,6 +25,7 @@ from .nodes import (
     LogMessage,
     Node,
     SetVar,
+    SetGlobalVar,
     Step,
     Switch,
     TryExcept,

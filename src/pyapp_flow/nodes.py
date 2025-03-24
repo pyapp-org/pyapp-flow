@@ -62,9 +62,9 @@ class Step(Navigable):
     def __init__(
         self,
         func: Callable,
-        name: str = None,
-        output: Union[str, Sequence[str]] = None,
-        ignore_exceptions: Union[Type[Exception], Sequence[Type[Exception]]] = None,
+        name: str | None = None,
+        output: str | Sequence[str] | None = None,
+        ignore_exceptions: type[Exception] | Sequence[type[Exception]] | None = None,
     ):
         self.func = func
         self._name = name or func.__name__.replace("_", " ").title()
@@ -118,10 +118,10 @@ class Step(Navigable):
 def step(
     func=None,
     *,
-    name: str = None,
-    output: Union[str, Sequence[str]] = None,
-    ignore_exceptions: Union[Type[Exception], Sequence[Type[Exception]]] = None,
-) -> Union[Callable[[Callable], Step], Step]:
+    name: str | None = None,
+    output: str | Sequence[str] | None = None,
+    ignore_exceptions: type[Exception] | Sequence[type[Exception]] | None = None,
+) -> Callable[[Callable], Step] | Step:
     """Decorate a method turning it into a step"""
 
     def decorator(func_) -> Step:
@@ -132,8 +132,8 @@ def step(
 
 def inline(
     func: Callable,
-    name: str = None,
-    ignore_exceptions: Union[Type[Exception], Sequence[Type[Exception]]] = None,
+    name: str | None = None,
+    ignore_exceptions: type[Exception] | Sequence[type[Exception]] | None = None,
 ) -> Step:
     """Define an inline step.
 
@@ -175,7 +175,7 @@ class Group(Navigable):
         self._finally_nodes = nodes
         return self
 
-    def branches(self) -> Optional[Branches]:
+    def branches(self) -> Branches | None:
         """Return branches for this node."""
         if self._finally_nodes:
             return {"": self._nodes + self._finally_nodes}
@@ -230,6 +230,48 @@ class SetVar(Navigable):
         return f"Set value(s) for {', '.join(self.values)}"
 
 
+class SetGlobalVar(Navigable):
+    """Set global context variable to specified values
+
+    :param values: Key/Value pairs or Key/Callable pairs to be applied to the
+                   context.
+
+    .. code-block:: python
+
+        SetGlobalVar(
+            title="Hyperion",
+            published=datetime.date(1996, 11, 1),
+            updated=lambda context: datetime.datetime.now()
+        )
+
+    """
+
+    __slots__ = ("values",)
+
+    def __init__(
+        self,
+        **values: Any | Node,
+    ):
+        self.values = values
+
+    def __call__(self, context: WorkflowContext):
+        """Call object implementation."""
+        context.info("📝 %s", self)
+        values = [
+            (key, value(context) if callable(value) else value)
+            for key, value in self.values.items()
+        ]
+
+        # Set at all levels in the state vector
+        for state in context._state_vector:
+            state.update(values)
+
+    @property
+    def name(self):
+        """Name of the node."""
+        return f"Set global value(s) for {', '.join(self.values)}"
+
+
 class DefaultVar(Navigable):
     """Set context variable to specified values if not already set.
 
@@ -245,7 +287,7 @@ class DefaultVar(Navigable):
         )
     """
 
-    __slots__ = ("values", )
+    __slots__ = ("values",)
 
     def __init__(
         self,
@@ -257,12 +299,12 @@ class DefaultVar(Navigable):
         """Call object implementation."""
         context.info("📝 %s", self)
         values = [
-                (key, value(context) if callable(value) else value)
-                 for key, value in self.values.items()
-                if key not in context.state
+            (key, value(context) if callable(value) else value)
+            for key, value in self.values.items()
+            if key not in context.state
         ]
         context.state.update(values)
-        
+
     @property
     def name(self):
         """Name of the node"""
@@ -664,7 +706,13 @@ class ForEach(Navigable):
 
     __slots__ = ("target_vars", "in_var", "_nodes", "_loop_label", "_update_context")
 
-    def __init__(self, target_vars: Union[str, Sequence[str]], in_var: str, *, loop_label: str = None):
+    def __init__(
+        self,
+        target_vars: Union[str, Sequence[str]],
+        in_var: str,
+        *,
+        loop_label: str = None,
+    ):
         self.target_vars = target_vars = var_list(target_vars)
         self.in_var = in_var
         self._nodes = []
