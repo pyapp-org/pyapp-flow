@@ -23,7 +23,7 @@ def test_mask_keys():
         "foo": "bar",
         "username": "dave",
         "password": "secret-password",
-        "account-secret": "secret-details"
+        "account-secret": "secret-details",
     }
 
     actual = helpers.mask_keys(sample)
@@ -34,4 +34,3 @@ def test_mask_keys():
         "password": "****",
         "account-secret": "****",
     }
-

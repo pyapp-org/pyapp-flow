@@ -1,4 +1,5 @@
 """Helper methods for testing workflows."""
+
 from typing import Any, Callable
 
 from . import functions
@@ -9,7 +10,7 @@ def call_node(
     node: Callable[[WorkflowContext], Any],
     *,
     workflow_context: WorkflowContext = None,
-    **context_vars: Any
+    **context_vars: Any,
 ) -> WorkflowContext:
     """Simplifies the testing of any node.
 

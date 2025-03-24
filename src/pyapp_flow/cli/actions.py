@@ -1,4 +1,5 @@
 """Actions for the CLI."""
+
 import importlib.util
 import logging
 import sys

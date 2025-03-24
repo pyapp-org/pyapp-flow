@@ -24,7 +24,9 @@ def print_results(file_sizes: Sequence[Tuple[Path, int]]):
     print("\n".join(f"{f.name}: {lc}" for f, lc in file_sizes))
 
 
-parallel_print = flow.Workflow(name="parallel flow",).nodes(
+parallel_print = flow.Workflow(
+    name="parallel flow",
+).nodes(
     iterate_files,
     (
         MapNode("file", in_var="files")

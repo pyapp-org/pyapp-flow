@@ -184,6 +184,37 @@ class TestSetVar:
         assert str(target) == "Set value(s) for var_b, var_c"
 
 
+class TestSetGlobalVar:
+    def test_call(self):
+        target = nodes.SetGlobalVar(
+            var_b=42, var_d=lambda ctx: ctx.state["var_a"] + "bar"
+        )
+
+        context = WorkflowContext(var_a="foo", var_c="bar", var_b=13)
+        with context:
+            call_node(target, workflow_context=context)
+
+            assert context.state == {
+                "__trace": [ANY],
+                "var_a": "foo",
+                "var_b": 42,
+                "var_c": "bar",
+                "var_d": "foobar",
+            }
+
+        assert context.state == {
+            "__trace": [],
+            "var_a": "foo",
+            "var_b": 42,
+            "var_c": "bar",
+            "var_d": "foobar",
+        }
+
+    def test_str(self):
+        target = nodes.SetGlobalVar(var_b=42, var_c="bar")
+
+        assert str(target) == "Set global value(s) for var_b, var_c"
+
 
 class TestDefaultVar:
     @pytest.fixture
@@ -247,7 +278,10 @@ class TestForEach:
             call_node(target, var_a=None, var_b=[])
 
     def test_call__in_var_is_multiple_parts(self):
-        target = nodes.ForEach(("key_a", "key_b"), in_var="var_a",).loop(
+        target = nodes.ForEach(
+            ("key_a", "key_b"),
+            in_var="var_a",
+        ).loop(
             nodes.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
         )
 
@@ -256,7 +290,10 @@ class TestForEach:
         assert context.state.var_b == [1, 2, 3]
 
     def test_call__in_var_is_multiple_string(self):
-        target = nodes.ForEach("key_a, key_b", in_var="var_a",).loop(
+        target = nodes.ForEach(
+            "key_a, key_b",
+            in_var="var_a",
+        ).loop(
             nodes.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
         )
 
@@ -269,7 +306,10 @@ class TestForEach:
         assert context.state.var_b == [1, 2, 3]
 
     def test_call__in_var_is_multiple_parts_not_iterable(self):
-        target = nodes.ForEach(("key_a", "key_b"), in_var="var_a",).loop(
+        target = nodes.ForEach(
+            ("key_a", "key_b"),
+            in_var="var_a",
+        ).loop(
             nodes.Step(lambda key_a, key_b, var_b: var_b.append(key_b)),
         )
 
@@ -446,7 +486,11 @@ class TestConditional:
 class TestFeatureEnabled:
     @pytest.fixture
     def target(self):
-        return nodes.FeatureEnabled("MY-FEATURE").true(nodes.Append("message", "True")).false(nodes.Append("message", "False"))
+        return (
+            nodes.FeatureEnabled("MY-FEATURE")
+            .true(nodes.Append("message", "True"))
+            .false(nodes.Append("message", "False"))
+        )
 
     @pytest.fixture
     def enable_feature(self):
@@ -454,6 +498,7 @@ class TestFeatureEnabled:
         feature_flags.DEFAULT.set("MY-FEATURE", True)
         yield
         feature_flags.DEFAULT.set("MY-FEATURE", state)
+
     @pytest.fixture
     def disable_feature(self):
         state = feature_flags.get("MY-FEATURE")
@@ -466,12 +511,16 @@ class TestFeatureEnabled:
 
         assert context.state.message == ["False"]
 
-    def test_call__default_behaviour__where_feature_enabled(self, target, enable_feature):
+    def test_call__default_behaviour__where_feature_enabled(
+        self, target, enable_feature
+    ):
         context = call_node(target)
 
         assert context.state.message == ["True"]
 
-    def test_call__default_behaviour__where_feature_disabled(self, target, disable_feature):
+    def test_call__default_behaviour__where_feature_disabled(
+        self, target, disable_feature
+    ):
         context = call_node(target)
 
         assert context.state.message == ["False"]
@@ -602,16 +651,13 @@ def track_step(*match_values: str) -> nodes.Step:
 class TestTryExcept:
     @pytest.fixture
     def target(self):
-        return (
-            nodes.TryExcept(
-                track_step("a", "b", "c"),
-                track_step("b", "a"),
-                track_step("c", "a"),
-            )
-            .except_on(
-                StepFailedError,
-                nodes.Append("track", "except_on"),
-            )
+        return nodes.TryExcept(
+            track_step("a", "b", "c"),
+            track_step("b", "a"),
+            track_step("c", "a"),
+        ).except_on(
+            StepFailedError,
+            nodes.Append("track", "except_on"),
         )
 
     def test_call__where_no_exceptions(self, target):
@@ -625,16 +671,13 @@ class TestTryExcept:
         assert context.state.track == ["a", "b", "except_on"]
 
     def test_call__where_exception_is_subclass(self):
-        target = (
-            nodes.TryExcept(
-                track_step("a", "b", "c"),
-                track_step("b", "a"),
-                track_step("c", "a"),
-            )
-            .except_on(
-                WorkflowRuntimeError,
-                nodes.Append("track", "except_on"),
-            )
+        target = nodes.TryExcept(
+            track_step("a", "b", "c"),
+            track_step("b", "a"),
+            track_step("c", "a"),
+        ).except_on(
+            WorkflowRuntimeError,
+            nodes.Append("track", "except_on"),
         )
 
         context = call_node(target, track=[], var_a="c")
