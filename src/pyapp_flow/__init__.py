@@ -1,5 +1,6 @@
 """Application Workflow"""
 
+import sys
 from typing import Optional, Type
 
 from typing_extensions import Self
@@ -148,3 +149,25 @@ class Workflow(Nodes):
         """
         self._required_vars = tuple(kwargs.items())
         return self
+
+
+_debugger_active = getattr(sys, "gettrace", lambda: None)() is not None
+
+
+def break_point(*, debugger_only: bool = False) -> Step:
+    """Place a breakpoint in a flow to allow for debugging or inspection of context.
+
+    :param debugger_only: Only trigger if the debugger is active.
+    """
+
+    @step(name="Breakpoint")
+    def _step(ctx: WorkflowContext):
+        if not _debugger_active:
+            if debugger_only:
+                skip_step("Debugger not active")
+            ctx.info("WorkflowContext is available in `ctx` variable")
+
+        breakpoint()
+
+    return _step
+
