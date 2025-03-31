@@ -30,7 +30,7 @@ flow = "pyapp_flow.cli:main"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-rich = ">=12.4.4,<14.0.0"
+rich = ">=12.4.4,<15.0.0"
 pyapp = "^4.10"
 typing-extensions = "^4.0"
 
