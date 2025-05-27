@@ -21,11 +21,13 @@ def _import_flow_file(flow_file: Path) -> ModuleType:
     Based off the import code in nox.
     """
     if not flow_file.is_file():
-        raise FileNotFoundError(f"Flow file not found at: {flow_file}")
+        msg = f"Flow file not found at: {flow_file}"
+        raise FileNotFoundError(msg)
 
     spec = importlib.util.spec_from_file_location("user_flow_module", flow_file)
     if spec is None:
-        raise ImportError(f"Unable to import flow file: {flow_file}")
+        msg = f"Unable to import flow file: {flow_file}"
+        raise ImportError(msg)
 
     module = importlib.util.module_from_spec(spec)
     sys.modules["user_flow_module"] = module
@@ -48,9 +50,8 @@ def _resolve_flow(module: ModuleType, name: str) -> Workflow:
     try:
         return flows[name]
     except KeyError:
-        raise RuntimeError(
-            f"Workflow not found: {name}; try one of: {', '.join(flows)}"
-        ) from None
+        msg = f"Workflow not found: {name}; try one of: {', '.join(flows)}"
+        raise RuntimeError(msg) from None
 
 
 def list_flows(flow_file: Path):

@@ -33,10 +33,11 @@ def extract_inputs(func: Callable) -> tuple[Mapping[str, type], str]:
 
     # Ensure there are no positional only items
     if func_code.co_posonlyargcount:
-        raise WorkflowSetupError(
+        msg = (
             "Positional only arguments are not supported.\n\n"
             f"\tdef {func_code.co_name}(...)"
         )
+        raise WorkflowSetupError(msg)
 
     inputs = {}
     context_var = None
@@ -49,10 +50,11 @@ def extract_inputs(func: Callable) -> tuple[Mapping[str, type], str]:
         # Extract a context instance
         if type_ is WorkflowContext:
             if context_var is not None:
-                raise WorkflowSetupError(
+                msg = (
                     "WorkflowContext supplied multiple times.\n\n"
                     f"\tdef {func_code.co_name}({context_var}: WorkflowContext, {name}: WorkflowContext)"
                 )
+                raise WorkflowSetupError(msg)
             context_var = name
 
         else:
@@ -84,7 +86,8 @@ def extract_outputs(
         types = (types,)
 
     if len(names) != len(types):
-        raise WorkflowSetupError("Name count does not match type count.")
+        msg = "Name count does not match type count."
+        raise WorkflowSetupError(msg)
 
     return tuple(zip(names, types))
 
@@ -147,13 +150,15 @@ def required_variables_in_context(
                 invalid_types.append(var_name)
 
     if missing:
-        raise MissingVariableError(
+        msg = (
             f"{node_name} missing {len(missing)} required context variable: "
             f"{human_join_strings(missing)}"
         )
+        raise MissingVariableError(msg)
 
     if invalid_types:
-        raise VariableTypeError(
+        msg = (
             f"{node_name} has {len(invalid_types)} context variable(s) with invalid types: "
             f"{human_join_strings(invalid_types)}"
         )
+        raise VariableTypeError(msg)

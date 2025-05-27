@@ -31,7 +31,8 @@ def _call_parallel_node(node_id, context_data, return_vars):
     try:
         node = import_node(node_id)
     except (AttributeError, ImportError) as ex:
-        raise FatalError(f"Unable to import parallel node: {ex}")
+        msg = f"Unable to import parallel node: {ex}"
+        raise FatalError(msg)
 
     # Generate context and call node
     context = WorkflowContext(**context_data)
@@ -113,10 +114,12 @@ class MapNode(Navigable, _ParallelNode):
         try:
             iterable = context.state[self.in_var]
         except KeyError:
-            raise WorkflowRuntimeError(f"Variable {self.in_var} not found in context")
+            msg = f"Variable {self.in_var} not found in context"
+            raise WorkflowRuntimeError(msg)
 
         if not isinstance(iterable, Iterable):
-            raise WorkflowRuntimeError(f"Variable {self.in_var} is not iterable")
+            msg = f"Variable {self.in_var} is not iterable"
+            raise WorkflowRuntimeError(msg)
 
         if self._node_id:
             result_vars = [name for name, _ in self._merge_vars]

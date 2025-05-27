@@ -36,7 +36,8 @@ class State(dict[str, Any]):
         try:
             return self[var]
         except KeyError:
-            raise AttributeError(f"State has no attribute {var!r}") from None
+            msg = f"State has no attribute {var!r}"
+            raise AttributeError(msg) from None
 
     def __setattr__(self, var: str, value: Any):
         self[var] = value
@@ -45,7 +46,8 @@ class State(dict[str, Any]):
         try:
             del self[var]
         except KeyError:
-            raise AttributeError(f"State has no attribute {var!r}") from None
+            msg = f"State has no attribute {var!r}"
+            raise AttributeError(msg) from None
 
     def __rich__(self):
         """Rich repr of state."""

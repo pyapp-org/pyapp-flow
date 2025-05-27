@@ -182,6 +182,20 @@ class Group(Navigable):
                     call_nodes(context, self._finally_nodes)
 
 
+class Nodes(Group):
+    """A series of nodes to be executed on call."""
+
+    __slots__ = ()
+
+    def __call__(self, context: WorkflowContext):
+        with context:
+            self._execute(context)
+
+    @property
+    def name(self) -> str:
+        return f"⏬ {type(self).__name__}"
+
+
 class SetVar(Navigable):
     """Set context variable to specified values
 
@@ -442,7 +456,8 @@ class Conditional(Navigable):
         elif callable(condition):
             self.condition = condition
         else:
-            raise TypeError("condition not context variable name or callable")
+            msg = "condition not context variable name or callable"
+            raise TypeError(msg)
 
         self._true_nodes = None
         self._false_nodes = None
@@ -565,7 +580,8 @@ class Switch(Navigable):
         elif callable(condition):
             self.condition = condition
         else:
-            raise TypeError("condition not context variable name or callable")
+            msg = "condition not context variable name or callable"
+            raise TypeError(msg)
 
         self._options = {}
         self._default = None
@@ -720,10 +736,12 @@ class ForEach(Navigable):
         try:
             iterable = context.state[self.in_var]
         except KeyError:
-            raise WorkflowRuntimeError(f"Variable {self.in_var} not found in context")
+            msg = f"Variable {self.in_var} not found in context"
+            raise WorkflowRuntimeError(msg)
 
         if not isinstance(iterable, Iterable):
-            raise WorkflowRuntimeError(f"Variable {self.in_var} is not iterable")
+            msg = f"Variable {self.in_var} is not iterable"
+            raise WorkflowRuntimeError(msg)
 
         with context.block_indent():
             for value in iterable:
@@ -769,9 +787,8 @@ class ForEach(Navigable):
             try:
                 return dict(zip(target_vars, values))
             except (TypeError, ValueError):
-                raise WorkflowRuntimeError(
-                    f"Value {values} from {self.in_var} is not iterable"
-                )
+                msg = f"Value {values} from {self.in_var} is not iterable"
+                raise WorkflowRuntimeError(msg)
 
         return _values
 
