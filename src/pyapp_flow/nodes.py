@@ -833,7 +833,7 @@ class WithContextBase(Navigable, ABC):
     def nodes(self, *nodes: Node) -> Self:
         """Add nodes to execute within this step."""
         self._nodes.extend(nodes)
-        return self._nodes
+        return self
 
 
 class TryExcept(Navigable):

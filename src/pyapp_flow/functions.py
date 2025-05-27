@@ -1,4 +1,4 @@
-from collections.abc import Sequence, Mapping, Iterable
+from collections.abc import Iterable
 from typing import Callable, Any
 
 from .datastructures import WorkflowContext
@@ -19,14 +19,14 @@ def skip_step(message: str):
     raise SkipStep(message)
 
 
-def var_list(var_names: str | Sequence[str]) -> Sequence[str]:
+def var_list(var_names: str | list[str]) -> list[str]:
     """Split a comma separated list of var names into individual names."""
     if isinstance(var_names, str):
         var_names = var_names.split(",")
     return [name.strip() for name in var_names]
 
 
-def extract_inputs(func: Callable) -> tuple[Mapping[str, type], str]:
+def extract_inputs(func: Callable) -> tuple[dict[str, type], str]:
     """Extract input variables from function."""
     func_code = func.__code__
     annotations = func.__annotations__
@@ -64,8 +64,8 @@ def extract_inputs(func: Callable) -> tuple[Mapping[str, type], str]:
 
 
 def extract_outputs(
-    func: Callable, names: str | Sequence[str]
-) -> Sequence[tuple[str, type]]:
+    func: Callable, names: str | list[str]
+) -> tuple[tuple[str, type], ...]:
     """Extract outputs from function."""
     types = func.__annotations__.get("return")
 
@@ -104,15 +104,15 @@ def call_node(context: WorkflowContext, node: Callable):
         raise
 
 
-def call_nodes(context: WorkflowContext, nodes: Sequence[Callable]):
+def call_nodes(context: WorkflowContext, nodes: tuple[Callable, ...]):
     """Call each node in a sequence."""
     for node in nodes:
         call_node(context, node)
 
 
 def merge_nested_entries(
-    iterable: Iterable[list], merge_methods: Sequence[str]
-) -> Sequence[list]:
+    iterable: Iterable[list], merge_methods: tuple[str, ...]
+) -> tuple[list, ...]:
     """Rotate and combine rows of data.
 
     >>> merge_nested_entries([[1, 2, [3]], [4, 5, [6, 7]]], ("append", "append", "extend"))
@@ -133,7 +133,7 @@ def merge_nested_entries(
 
 def required_variables_in_context(
     node_name: str,
-    required_vars: Sequence[tuple[str, type]],
+    required_vars: list[tuple[str, type]],
     context: WorkflowContext,
 ):
     """Check all variables are in the context."""
