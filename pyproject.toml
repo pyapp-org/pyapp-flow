@@ -3,7 +3,7 @@ name = "pyapp-flow"
 description = "Application workflow framework"
 license = "BSD-3-Clause"
 keywords = ["framework", "application"]
-version = "0.19"
+version = "0.20"
 dynamic = ["classifiers"]
 readme = "README.md"
 authors = [{name = "Tim Savage", email = "tim@savage.company"}]
