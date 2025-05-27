@@ -65,7 +65,16 @@ class Counter:
 
 
 def increment(target_var: str, *, amount: int = 1) -> Step:
-    """Increment a counter."""
+    """Increment a counter.
+
+    :param target_var: Target variable containing counter instance.
+    :param amount: Amount to increment; default is `1`
+
+    .. code-block:: python
+
+        increment("counter")
+
+    """
 
     @step(name=f"Increment {target_var} by {amount}")
     def _step(context: WorkflowContext):
@@ -75,7 +84,16 @@ def increment(target_var: str, *, amount: int = 1) -> Step:
 
 
 def decrement(target_var: str, *, amount: int = 1) -> Step:
-    """Increment a counter."""
+    """Decrement a counter.
+
+    :param target_var: Target variable containing counter instance.
+    :param amount: Amount to decrement; default is `1`
+
+    .. code-block:: python
+
+        decrement("counter", amount=2)
+
+    """
 
     @step(name=f"Decrement {target_var} by {amount}")
     def _step(context: WorkflowContext):

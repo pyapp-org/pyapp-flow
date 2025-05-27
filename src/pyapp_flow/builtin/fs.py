@@ -19,7 +19,21 @@ def format_path(path: PathStr, context: WorkflowContext) -> Path:
 
 
 def dir_exists(path: PathStr, output_var="dir_exists") -> Step:
-    """Check if a directory exists."""
+    """Check if a directory exists.
+
+    Often used with a condition block.
+
+    :param path: Path to directory to check for.
+    :param output_var: Name of output variable.
+    :returns: Boolean of directory state.
+
+    .. code-block:: python
+
+        flow.If(
+            dir_exists("/path/to/dir")
+        ).true(...)
+
+    """
 
     @step(name=f"📁 Does directory exist? {path}", output=output_var)
     def _step(context: WorkflowContext) -> bool:
@@ -30,7 +44,21 @@ def dir_exists(path: PathStr, output_var="dir_exists") -> Step:
 
 
 def file_exists(path: PathStr, output_var="file_exists") -> Step:
-    """Check if a file exists."""
+    """Check if a file exists.
+
+    Often used with a condition block.
+
+    :param path: Path to file to check for.
+    :param output_var: Name of output variable.
+    :returns: Boolean of file state.
+
+    .. code-block:: python
+
+        flow.If(
+            file_exists("/path/to/dir/file.txt")
+        ).true(...)
+
+    """
 
     @step(name=f"📄 Does file exist? {path}", output=output_var)
     def _step(context: WorkflowContext) -> bool:
@@ -41,7 +69,16 @@ def file_exists(path: PathStr, output_var="file_exists") -> Step:
 
 
 def ensure_dir(path: PathStr, *, parents: bool = True) -> Step:
-    """Ensure a directory exists."""
+    """Ensure a directory exists, creating if required.
+
+    :param path: Path to file/dir that must exist.
+    :param parents: If True, create parent directory's if necessary.
+
+    .. code-block:: python
+
+        ensure_dir("/path/to/dir")
+
+    """
 
     @step(name=f"📁 Ensure directory exists {path}")
     def _step(context: WorkflowContext):
@@ -52,7 +89,16 @@ def ensure_dir(path: PathStr, *, parents: bool = True) -> Step:
 
 
 def ensure_parent_dir(path: PathStr, *, parents: bool = True) -> Step:
-    """Ensure the parent directory exists."""
+    """Ensure the parent directory exists, creating if required.
+
+    :param path: Path to file/dir whose parent must exist.
+    :param parents: If True, create parent directory's if necessary.
+
+    .. code-block:: python
+
+        ensure_parent_dir("/path/to/dir")
+
+    """
 
     @step(name=f"📁 Ensure parent directory exists for {path}")
     def _step(context: WorkflowContext):
@@ -63,6 +109,23 @@ def ensure_parent_dir(path: PathStr, *, parents: bool = True) -> Step:
 
 
 class TempWorkspace(WithContextBase):
+    """Step that creates a temporary workspace that is cleaned up on exit.
+
+    :param target_var: Variable the Path to the workspace is placed; default is
+        ``workspace``.
+    :param cleanup: Clean up the workspace on exit; default is True.
+    :param prefix: A prefix to provide the workspace name; default is
+        ``flow-``.
+    :param base_dir: An optional location to create the temporary workspace.
+        The default value of ``None`` will resolve the system ``TEMP`` variable
+        as the base_dir.
+
+    .. code-block:: python
+
+        TempWorkspace()
+
+    """
+
     """Temporary Workspace that is cleaned up on exit."""
 
     def __init__(
