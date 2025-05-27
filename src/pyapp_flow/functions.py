@@ -1,4 +1,5 @@
-from typing import Callable, Mapping, Tuple, Sequence, Union, Iterable, Any
+from collections.abc import Sequence, Mapping, Iterable
+from typing import Callable, Any
 
 from .datastructures import WorkflowContext
 from .errors import (
@@ -18,14 +19,14 @@ def skip_step(message: str):
     raise SkipStep(message)
 
 
-def var_list(var_names: Union[str, Sequence[str]]) -> Sequence[str]:
+def var_list(var_names: str | Sequence[str]) -> Sequence[str]:
     """Split a comma separated list of var names into individual names."""
     if isinstance(var_names, str):
         var_names = var_names.split(",")
     return [name.strip() for name in var_names]
 
 
-def extract_inputs(func: Callable) -> Tuple[Mapping[str, type], str]:
+def extract_inputs(func: Callable) -> tuple[Mapping[str, type], str]:
     """Extract input variables from function."""
     func_code = func.__code__
     annotations = func.__annotations__
@@ -61,8 +62,8 @@ def extract_inputs(func: Callable) -> Tuple[Mapping[str, type], str]:
 
 
 def extract_outputs(
-    func: Callable, names: Union[str, Sequence[str]]
-) -> Sequence[Tuple[str, type]]:
+    func: Callable, names: str | Sequence[str]
+) -> Sequence[tuple[str, type]]:
     """Extract outputs from function."""
     types = func.__annotations__.get("return")
 
@@ -129,7 +130,7 @@ def merge_nested_entries(
 
 def required_variables_in_context(
     node_name: str,
-    required_vars: Sequence[Tuple[str, type]],
+    required_vars: Sequence[tuple[str, type]],
     context: WorkflowContext,
 ):
     """Check all variables are in the context."""

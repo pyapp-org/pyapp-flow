@@ -1,7 +1,5 @@
 """Application Workflow"""
 
-from typing import Optional, Type
-
 from typing_extensions import Self
 
 from . import errors as exceptions
@@ -137,7 +135,7 @@ class Workflow(Nodes):
         self._nodes.append(DefaultVar(**kwargs))
         return self
 
-    def require_vars(self, **kwargs: Optional[Type]) -> Self:
+    def require_vars(self, **kwargs: type | None) -> Self:
         """Require variables to be present in the context.
 
         If any type can be used, use ``typing.Any`` as the type.

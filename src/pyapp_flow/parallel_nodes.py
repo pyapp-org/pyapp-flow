@@ -4,7 +4,8 @@ import importlib
 import enum
 from functools import cached_property
 from multiprocessing import Pool
-from typing import Optional, Callable, Iterable, Any, Dict, Tuple, Sequence, Union
+from collections.abc import Iterable, Sequence
+from typing import Callable, Any
 
 from pyapp_flow import Navigable, WorkflowContext, Branches
 from pyapp_flow.errors import WorkflowRuntimeError, FatalError
@@ -51,7 +52,7 @@ class _ParallelNode:
     def _map_to_pool(
         self,
         node_id: str,
-        context_iter: Iterable[Dict[str, Any]],
+        context_iter: Iterable[dict[str, Any]],
         return_vars: Sequence[str],
     ) -> Sequence[Any]:
         """Map an iterable of context entries into a node.
@@ -138,7 +139,7 @@ class MapNode(Navigable, _ParallelNode):
         """Name of node."""
         return f"Map ({self.target_var}) in `{self.in_var}`"
 
-    def branches(self) -> Optional[Branches]:
+    def branches(self) -> Branches | None:
         """Branches to call on each iteration of the foreach block."""
         return {"loop": [self._node_id]}
 
@@ -147,7 +148,7 @@ class MapNode(Navigable, _ParallelNode):
         self._node_id = node
         return self
 
-    def merge_vars(self, *merge_vars: Union[str, Tuple[str, MergeMethod]]) -> "MapNode":
+    def merge_vars(self, *merge_vars: str | tuple[str, MergeMethod]) -> "MapNode":
         """Vars to merge back from parallel execution.
 
         These can optionally take a merge method to defined how the variables

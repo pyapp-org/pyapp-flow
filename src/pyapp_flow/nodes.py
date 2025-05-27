@@ -1,15 +1,6 @@
 import logging
-from typing import (
-    Callable,
-    Sequence,
-    Union,
-    Iterable,
-    Type,
-    Hashable,
-    Optional,
-    Any,
-    Dict,
-)
+from collections.abc import Sequence, Iterable, Hashable
+from typing import Callable, Any
 from typing_extensions import Self
 
 from pyapp import feature_flags
@@ -155,7 +146,7 @@ class Group(Navigable):
 
     __slots__ = ("_nodes", "_finally_nodes", "_log_level")
 
-    def __init__(self, *nodes_: Node, log_level: Union[str, int, None] = None):
+    def __init__(self, *nodes_: Node, log_level: str | int | None = None):
         """Initialise nodes."""
         self._nodes = list(nodes_)
         self._finally_nodes = None
@@ -211,7 +202,7 @@ class SetVar(Navigable):
 
     def __init__(
         self,
-        **values: Union[Any, Callable[[WorkflowContext], Any]],
+        **values: Any | Callable[[WorkflowContext], Any],
     ):
         self.values = values
 
@@ -376,7 +367,7 @@ class CaptureErrors(Navigable):
         target_var: str,
         try_all: bool = True,
         *,
-        except_types: Union[type, Sequence[type]] = None,
+        except_types: type | Sequence[type] = None,
     ):
         self.target_var = target_var
         self.except_types = except_types
@@ -409,7 +400,7 @@ class CaptureErrors(Navigable):
         """Name of the node."""
         return f"Capture errors into `{self.target_var}`"
 
-    def branches(self) -> Optional[Branches]:
+    def branches(self) -> Branches | None:
         return {"": tuple(self._nodes)}
 
     def nodes(self, *nodes: Node) -> Self:
@@ -445,7 +436,7 @@ class Conditional(Navigable):
 
     __slots__ = ("condition", "_true_nodes", "_false_nodes")
 
-    def __init__(self, condition: Union[str, Callable[[WorkflowContext], bool]]):
+    def __init__(self, condition: str | Callable[[WorkflowContext], bool]):
         if isinstance(condition, str):
             self.condition = lambda context: bool(context.state.get(condition))
         elif callable(condition):
@@ -472,7 +463,7 @@ class Conditional(Navigable):
         """Name of the node."""
         return "Conditional branch"
 
-    def branches(self) -> Optional[Branches]:
+    def branches(self) -> Branches | None:
         return {"true": self._true_nodes, "false": self._false_nodes}
 
     def true(self, *nodes: Node) -> Self:
@@ -532,7 +523,7 @@ class FeatureEnabled(Navigable):
         """Name of the node."""
         return f"Feature flag: {self._flag}"
 
-    def branches(self) -> Optional[Branches]:
+    def branches(self) -> Branches | None:
         return {"true": self._true_nodes, "false": self._false_nodes}
 
     def true(self, *nodes: Node) -> Self:
@@ -568,7 +559,7 @@ class Switch(Navigable):
 
     __slots__ = ("condition", "_options", "_default")
 
-    def __init__(self, condition: Union[str, Callable[[WorkflowContext], Hashable]]):
+    def __init__(self, condition: str | Callable[[WorkflowContext], Hashable]):
         if isinstance(condition, str):
             self.condition = lambda context: context.state.get(condition)
         elif callable(condition):
@@ -601,7 +592,7 @@ class Switch(Navigable):
         """Name of the node."""
         return f"Switch into {', '.join(self._options)}"
 
-    def branches(self) -> Optional[Branches]:
+    def branches(self) -> Branches | None:
         branches = {str(case): nodes for case, nodes in self._options.items()}
         if self._default:
             branches["*DEFAULT*"] = self._default
@@ -708,7 +699,7 @@ class ForEach(Navigable):
 
     def __init__(
         self,
-        target_vars: Union[str, Sequence[str]],
+        target_vars: str | Sequence[str],
         in_var: str,
         *,
         loop_label: str = None,
@@ -754,7 +745,7 @@ class ForEach(Navigable):
         """Name of the node."""
         return f"For {self.target_vars_name} in `{self.in_var}`"
 
-    def branches(self) -> Optional[Branches]:
+    def branches(self) -> Branches | None:
         return {"loop": self._nodes}
 
     def loop(self, *nodes: Node) -> Self:
@@ -803,7 +794,7 @@ class TryExcept(Navigable):
 
     def __init__(self, *nodes: Node):
         self._nodes = nodes
-        self._exceptions: Dict[Type[Exception], Sequence[Node]] = {}
+        self._exceptions: dict[type[Exception], Sequence[Node]] = {}
         self._finally = None
 
     def __call__(self, context: WorkflowContext):
@@ -828,10 +819,10 @@ class TryExcept(Navigable):
         """Name of the node."""
         return "Try/Except"
 
-    def branches(self) -> Optional[Branches]:
+    def branches(self) -> Branches | None:
         return {"": self._nodes}
 
-    def except_on(self, exception: Type[Exception], *nodes: Node) -> Self:
+    def except_on(self, exception: type[Exception], *nodes: Node) -> Self:
         """Nodes to call if the exception is raised."""
         self._exceptions[exception] = nodes
         return self
@@ -862,9 +853,7 @@ class TryUntil(Navigable):
 
     def __init__(
         self,
-        except_types: Union[
-            Type[Exception], Sequence[Type[Exception]]
-        ] = StepFailedError,
+        except_types: type[Exception] | Sequence[type[Exception]] = StepFailedError,
     ):
         self.except_types = except_types
         self._nodes = []
@@ -890,7 +879,7 @@ class TryUntil(Navigable):
         """Name of the node."""
         return f"Try until a node does not raise {self.except_types}"
 
-    def branches(self) -> Optional[Branches]:
+    def branches(self) -> Branches | None:
         return {"": self._nodes}
 
     def nodes(self, *nodes: Node) -> Self:

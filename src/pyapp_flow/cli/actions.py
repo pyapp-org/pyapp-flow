@@ -5,7 +5,6 @@ import logging
 import sys
 from pathlib import Path
 from types import ModuleType
-from typing import Dict
 
 from rich import print
 from rich.traceback import Traceback
@@ -72,8 +71,8 @@ def list_flows(flow_file: Path):
 
 
 def run_flow(
-    flow_file: Path, name: str, args: Dict[str, str], dry_run: bool, full_trace: bool
-):
+    flow_file: Path, name: str, args: dict[str, str], dry_run: bool, full_trace: bool
+) -> int:
     """Run a workflow."""
     try:
         flow_module = _import_flow_file(flow_file)
@@ -98,15 +97,14 @@ def run_flow(
         dry_run=dry_run,
         flow_path=flow_file.parent.resolve(),
     )
+
     try:
         flow.execute(context, **args)
-
     except errors.VariableError as ex:
         if context.flow_trace:
             print(context.flow_trace)
         print(f"{flow.name} {ex}")
         return 1
-
     except Exception:
         print(context.flow_trace)
         traceback = Traceback(
