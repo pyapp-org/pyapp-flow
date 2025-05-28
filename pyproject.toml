@@ -3,7 +3,7 @@ name = "pyapp-flow"
 description = "Application workflow framework"
 license = "BSD-3-Clause"
 keywords = ["framework", "application"]
-version = "0.20"
+version = "0.20.1"
 dynamic = ["classifiers"]
 readme = "README.md"
 authors = [{name = "Tim Savage", email = "tim@savage.company"}]
@@ -22,7 +22,7 @@ classifiers = [
 ]
 requires-python = '~=3.10'
 dependencies = [
-    'rich ~=12.4',
+    'rich >=13.0',
     'pyapp ~=4.10',
     'typing-extensions ~=4.0'
 ]
