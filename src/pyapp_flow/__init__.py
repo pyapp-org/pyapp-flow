@@ -4,7 +4,7 @@ import sys
 from typing_extensions import Self
 
 from . import errors as exceptions
-from . import steps
+from . import steps, builtin
 from .datastructures import Branches, Navigable, WorkflowContext
 from .functions import (
     call_nodes,
