@@ -5,7 +5,6 @@ import logging
 import sys
 from pathlib import Path
 from types import ModuleType
-from typing import Dict
 
 from rich import print
 from rich.traceback import Traceback
@@ -22,11 +21,13 @@ def _import_flow_file(flow_file: Path) -> ModuleType:
     Based off the import code in nox.
     """
     if not flow_file.is_file():
-        raise FileNotFoundError(f"Flow file not found at: {flow_file}")
+        msg = f"Flow file not found at: {flow_file}"
+        raise FileNotFoundError(msg)
 
     spec = importlib.util.spec_from_file_location("user_flow_module", flow_file)
     if spec is None:
-        raise ImportError(f"Unable to import flow file: {flow_file}")
+        msg = f"Unable to import flow file: {flow_file}"
+        raise ImportError(msg)
 
     module = importlib.util.module_from_spec(spec)
     sys.modules["user_flow_module"] = module
@@ -49,9 +50,8 @@ def _resolve_flow(module: ModuleType, name: str) -> Workflow:
     try:
         return flows[name]
     except KeyError:
-        raise RuntimeError(
-            f"Workflow not found: {name}; try one of: {', '.join(flows)}"
-        ) from None
+        msg = f"Workflow not found: {name}; try one of: {', '.join(flows)}"
+        raise RuntimeError(msg) from None
 
 
 def list_flows(flow_file: Path):
@@ -72,8 +72,8 @@ def list_flows(flow_file: Path):
 
 
 def run_flow(
-    flow_file: Path, name: str, args: Dict[str, str], dry_run: bool, full_trace: bool
-):
+    flow_file: Path, name: str, args: dict[str, str], dry_run: bool, full_trace: bool
+) -> int:
     """Run a workflow."""
     try:
         flow_module = _import_flow_file(flow_file)
@@ -98,15 +98,14 @@ def run_flow(
         dry_run=dry_run,
         flow_path=flow_file.parent.resolve(),
     )
+
     try:
         flow.execute(context, **args)
-
     except errors.VariableError as ex:
         if context.flow_trace:
             print(context.flow_trace)
         print(f"{flow.name} {ex}")
         return 1
-
     except Exception:
         print(context.flow_trace)
         traceback = Traceback(

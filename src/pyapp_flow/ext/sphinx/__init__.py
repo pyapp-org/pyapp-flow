@@ -2,7 +2,8 @@
 Sphinx documentation generation for Steps
 """
 
-from typing import cast, Any, Optional, List, Iterable, Tuple, Type, Sequence
+from collections.abc import Iterable, Sequence
+from typing import cast, Any
 
 from sphinx.ext.autodoc import ModuleLevelDocumenter, bool_option
 from sphinx.util.docstrings import prepare_docstring
@@ -51,7 +52,7 @@ class StepDocumenter(ModuleLevelDocumenter):
             self.add_line("", source_name)
             self.add_line(f"{self.indent}**{step.name}**", source_name)
 
-    def get_doc(self) -> Optional[List[List[str]]]:
+    def get_doc(self) -> list[list[str]] | None:
         """
         Decode and return lines of the docstring(s) for the object.
 
@@ -69,7 +70,7 @@ class StepDocumenter(ModuleLevelDocumenter):
         return doc
 
     def _add_variable_lines(
-        self, variables: Iterable[Tuple[str, Optional[Type]]], source_name: str
+        self, variables: Iterable[tuple[str, type | None]], source_name: str
     ):
         self.add_line("", source_name)  # Ensure blank line
         for context_var, var_type in variables:
@@ -141,7 +142,7 @@ class WorkflowDocumenter(ModuleLevelDocumenter):
             self.add_line("", source_name)
             self.add_line(f"{self.indent}**{workflow.name}**", source_name)
 
-    def get_doc(self) -> Optional[List[List[str]]]:
+    def get_doc(self) -> list[list[str]] | None:
         """
         Decode and return lines of the docstring(s) for the object.
 

@@ -1,4 +1,5 @@
-from typing import Callable, Mapping, Tuple, Sequence, Union, Iterable, Any
+from collections.abc import Iterable
+from typing import Callable, Any
 
 from .datastructures import WorkflowContext
 from .errors import (
@@ -18,24 +19,25 @@ def skip_step(message: str):
     raise SkipStep(message)
 
 
-def var_list(var_names: Union[str, Sequence[str]]) -> Sequence[str]:
+def var_list(var_names: str | list[str]) -> list[str]:
     """Split a comma separated list of var names into individual names."""
     if isinstance(var_names, str):
         var_names = var_names.split(",")
     return [name.strip() for name in var_names]
 
 
-def extract_inputs(func: Callable) -> Tuple[Mapping[str, type], str]:
+def extract_inputs(func: Callable) -> tuple[dict[str, type], str]:
     """Extract input variables from function."""
     func_code = func.__code__
     annotations = func.__annotations__
 
     # Ensure there are no positional only items
     if func_code.co_posonlyargcount:
-        raise WorkflowSetupError(
+        msg = (
             "Positional only arguments are not supported.\n\n"
             f"\tdef {func_code.co_name}(...)"
         )
+        raise WorkflowSetupError(msg)
 
     inputs = {}
     context_var = None
@@ -48,10 +50,11 @@ def extract_inputs(func: Callable) -> Tuple[Mapping[str, type], str]:
         # Extract a context instance
         if type_ is WorkflowContext:
             if context_var is not None:
-                raise WorkflowSetupError(
+                msg = (
                     "WorkflowContext supplied multiple times.\n\n"
                     f"\tdef {func_code.co_name}({context_var}: WorkflowContext, {name}: WorkflowContext)"
                 )
+                raise WorkflowSetupError(msg)
             context_var = name
 
         else:
@@ -61,8 +64,8 @@ def extract_inputs(func: Callable) -> Tuple[Mapping[str, type], str]:
 
 
 def extract_outputs(
-    func: Callable, names: Union[str, Sequence[str]]
-) -> Sequence[Tuple[str, type]]:
+    func: Callable, names: str | list[str]
+) -> tuple[tuple[str, type], ...]:
     """Extract outputs from function."""
     types = func.__annotations__.get("return")
 
@@ -83,7 +86,8 @@ def extract_outputs(
         types = (types,)
 
     if len(names) != len(types):
-        raise WorkflowSetupError("Name count does not match type count.")
+        msg = "Name count does not match type count."
+        raise WorkflowSetupError(msg)
 
     return tuple(zip(names, types))
 
@@ -100,15 +104,15 @@ def call_node(context: WorkflowContext, node: Callable):
         raise
 
 
-def call_nodes(context: WorkflowContext, nodes: Sequence[Callable]):
+def call_nodes(context: WorkflowContext, nodes: tuple[Callable, ...]):
     """Call each node in a sequence."""
     for node in nodes:
         call_node(context, node)
 
 
 def merge_nested_entries(
-    iterable: Iterable[list], merge_methods: Sequence[str]
-) -> Sequence[list]:
+    iterable: Iterable[list], merge_methods: tuple[str, ...]
+) -> tuple[list, ...]:
     """Rotate and combine rows of data.
 
     >>> merge_nested_entries([[1, 2, [3]], [4, 5, [6, 7]]], ("append", "append", "extend"))
@@ -129,7 +133,7 @@ def merge_nested_entries(
 
 def required_variables_in_context(
     node_name: str,
-    required_vars: Sequence[Tuple[str, type]],
+    required_vars: list[tuple[str, type]],
     context: WorkflowContext,
 ):
     """Check all variables are in the context."""
@@ -146,13 +150,15 @@ def required_variables_in_context(
                 invalid_types.append(var_name)
 
     if missing:
-        raise MissingVariableError(
+        msg = (
             f"{node_name} missing {len(missing)} required context variable: "
             f"{human_join_strings(missing)}"
         )
+        raise MissingVariableError(msg)
 
     if invalid_types:
-        raise VariableTypeError(
+        msg = (
             f"{node_name} has {len(invalid_types)} context variable(s) with invalid types: "
             f"{human_join_strings(invalid_types)}"
         )
+        raise VariableTypeError(msg)
