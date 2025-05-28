@@ -150,14 +150,22 @@ variable scoping and helper methods for logging progress.
 
 ### Builtin Nodes
 
-**Modify context variables**
+#### Modify context variables
 
 - `SetVar`
   
     Set one or more variables into the context
 
     ```python
-    SetVar(my_var="foo")
+    flow.SetVar(my_var="foo")
+    ```
+
+- `SetGlobalVar`
+  
+    Set one or more variables globally in the context
+
+    ```python
+    flow.SetGlobalVar(my_var="foo")
     ```
 
 - `Append`
@@ -166,7 +174,7 @@ variable scoping and helper methods for logging progress.
     does not exist).
 
     ```python
-    Append("messages", "Operation failed to add {my_var}")
+    flow.Append("messages", "Operation failed to add {my_var}")
     ```
   
 - `CaptureErrors`
@@ -175,7 +183,7 @@ variable scoping and helper methods for logging progress.
     variable within the context.
 
     ```python
-    CaptureErrors("errors").nodes(my_flaky_step)
+    flow.CaptureErrors("errors").nodes(my_flaky_step)
     ```
   
     This node also has a `try_all` argument that controls the behaviour when an  
@@ -183,7 +191,7 @@ variable scoping and helper methods for logging progress.
     this is useful for running a number of separate tests that may fail.
 
     ```python
-    CaptureErrors(
+    flow.CaptureErrors(
         "errors", 
         try_all=True
     ).nodes(
@@ -192,7 +200,7 @@ variable scoping and helper methods for logging progress.
     )
     ```
 
-**Provide feedback**
+#### Provide feedback
 
 - `LogMessage`
     
@@ -200,11 +208,18 @@ variable scoping and helper methods for logging progress.
     log with an optional level.
     
     ```python
-    LogMessage("State of my_var is {my_var}", level=logging.INFO)
+    flow.LogMessage("State of my_var is {my_var}", level=logging.INFO)
     ```
+    
+    This node also has helper methods:
+    
+    * `LogMessage.debug`
+    * `LogMessage.info`
+    * `LogMessage.warning`
+    * `LogMessage.error`
 
 
-**Branching**
+#### Branching
 
 Branching nodes utilise a fluent interface for defining the nodes within each 
 branch. 
@@ -256,9 +271,8 @@ branch.
         .case("bar", log_message("Found bar!"))
     )
     ```
-  
 
-**Iteration**
+#### Iteration
 
 - `ForEach`
     
@@ -270,13 +284,62 @@ branch.
     ```python
     # With a single target variable
     (
-        ForEach("message", in_var="messages")
+        flow.ForEach("message", in_var="messages")
         .loop(log_message("- {message}"))
     )
   
     # With multiple target variables
     (
-        ForEach("name, age", in_var="students")
+        flow.ForEach("name, age", in_var="students")
         .loop(log_message("- {name} is {age} years old."))
     )
     ```
+
+
+#### Error Handling
+
+- `TryExcept`
+
+  Similar to the standard Python try/except/finally block.
+
+  Can handle single or multiple exceptions in a block with a finally block as a fallback.
+
+  ```python
+  # With a single exception
+  (
+    flow.TryExcept(log_message("could this fail?"))
+    .except_on(FileNotFoundError, log_message("Yes it did"))
+  )
+  
+  # With multiple exceptions
+  (
+    flow.TryExcept(log_message("could this fail?"))
+    .except_on([FileNotFoundError, TimeoutError], log_message("Yes it did"))
+    .except_on(RuntimeError, log_message("Another failure reason"))
+  )
+  
+  # Finally
+  (
+    flow.TryExcept(log_message("could this fail?"))
+    .and_finally(log_message("Always do this"))
+  )
+  ```
+  
+- `TryUntil`
+
+  Try a set of nodes until one of them does not raise an exception.
+
+  ```python
+  (
+    TryUntil()
+    .nodes(
+        resolve_state_a,
+        resolve_state_b,
+    )
+    .default(
+        fallback_state,
+    )
+  )
+  ```
+
+##

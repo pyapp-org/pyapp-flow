@@ -651,24 +651,30 @@ def track_step(*match_values: str) -> nodes.Step:
 class TestTryExcept:
     @pytest.fixture
     def target(self):
-        return nodes.TryExcept(
-            track_step("a", "b", "c"),
-            track_step("b", "a"),
-            track_step("c", "a"),
-        ).except_on(
-            StepFailedError,
-            nodes.Append("track", "except_on"),
+        return (
+            nodes.TryExcept(
+                track_step("a", "b", "c"),
+                track_step("b", "a"),
+                track_step("c", "a"),
+            )
+            .except_on(
+                StepFailedError,
+                nodes.Append("track", "except_on"),
+            )
+            .and_finally(
+                nodes.Append("track", "and_finally"),
+            )
         )
 
     def test_call__where_no_exceptions(self, target):
         context = call_node(target, track=[], var_a="a")
 
-        assert context.state.track == ["a", "b", "c"]
+        assert context.state.track == ["a", "b", "c", "and_finally"]
 
     def test_call__where_exception_is_caught(self, target):
         context = call_node(target, track=[], var_a="c")
 
-        assert context.state.track == ["a", "b", "except_on"]
+        assert context.state.track == ["a", "b", "except_on", "and_finally"]
 
     def test_call__where_exception_is_subclass(self):
         target = nodes.TryExcept(

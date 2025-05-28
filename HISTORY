@@ -1,10 +1,33 @@
+0.20.0
+======
+
+Additions
+---------
+
+- Builtin steps for fs
+  - ``dir_exists``
+  - ``file_exists``
+  - ``ensure_dir``
+  - ``ensure_parent_dir``
+  - ``TempWorkspace``
+
+- Builtin steps for counters
+  - ``increment``
+  - ``decrement``
+
+Changes
+-------
+
+- Add an ``and_finally`` method to TryExcept
+
+
 0.19.0
 ======
 
 Additions
 ---------
 
-- Add SetGlobalVar to set variables current and parent scopes. 
+- Add SetGlobalVar to set variables current and parent scopes.
 
 
 0.18.0

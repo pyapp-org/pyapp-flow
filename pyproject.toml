@@ -1,12 +1,12 @@
-[tool.poetry]
+[project]
 name = "pyapp-flow"
-version = "0.19"
 description = "Application workflow framework"
-authors = ["Tim Savage <tim@savage.company>"]
 license = "BSD-3-Clause"
-readme = "README.md"
-repository = "https://github.com/pyapp-org/pyapp-flow"
 keywords = ["framework", "application"]
+version = "0.20"
+dynamic = ["classifiers"]
+readme = "README.md"
+authors = [{name = "Tim Savage", email = "tim@savage.company"}]
 classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: BSD License",
@@ -14,27 +14,34 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Software Development :: Libraries :: Application Frameworks",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: Implementation :: CPython",
 ]
+requires-python = '~=3.10'
+dependencies = [
+    'rich ~=12.4',
+    'pyapp ~=4.10',
+    'typing-extensions ~=4.0'
+]
+
+[project.urls]
+repository = "https://github.com/pyapp-org/pyapp-flow"
+
+[project.scripts]
+flow = "pyapp_flow.cli:main"
+
+[tool.poetry]
 packages = [
     { include = "pyapp_flow", from = "src" },
     { include = "tests", format = "sdist" },
 ]
 include = ["HISTORY"]
+requires-poetry = '>=2.0,<3.0'
 
-[tool.poetry.scripts]
-flow = "pyapp_flow.cli:main"
-
-[tool.poetry.dependencies]
-python = "^3.10"
-rich = ">=12.4.4,<14.0.0"
-pyapp = "^4.10"
-typing-extensions = "^4.0"
-
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.test.dependencies]
 pytest = "^7.1"
 pytest-cov = "^4.0"
 Cython = "^0.29"

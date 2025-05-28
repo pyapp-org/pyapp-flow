@@ -3,22 +3,12 @@ from __future__ import annotations
 import abc
 import logging
 from collections import deque
-from typing import (
-    Dict,
-    Any,
-    Type,
-    Union,
-    Sequence,
-    Optional,
-    List,
-    Tuple,
-    Final,
-    Iterable,
-)
+from collections.abc import Iterable, Sequence
+from typing import Any, Final
 
 from .helpers import mask_keys
 
-Branches = Dict[str, Sequence["Navigable"]]
+Branches = dict[str, Sequence["Navigable"]]
 TRACE_STATE_KEY: Final[str] = "__trace"
 
 
@@ -32,21 +22,22 @@ class Navigable(abc.ABC):
     def name(self) -> str:
         """Name of object"""
 
-    def branches(self) -> Optional[Branches]:
+    def branches(self) -> Branches | None:
         """Branches from an object in the workflow node tree."""
 
     def __str__(self):
         return self.name
 
 
-class State(Dict[str, Any]):
+class State(dict[str, Any]):
     """Wrapper around dict to support attribute accessors."""
 
     def __getattr__(self, var: str) -> Any:
         try:
             return self[var]
         except KeyError:
-            raise AttributeError(f"State has no attribute {var!r}") from None
+            msg = f"State has no attribute {var!r}"
+            raise AttributeError(msg) from None
 
     def __setattr__(self, var: str, value: Any):
         self[var] = value
@@ -55,7 +46,8 @@ class State(Dict[str, Any]):
         try:
             del self[var]
         except KeyError:
-            raise AttributeError(f"State has no attribute {var!r}") from None
+            msg = f"State has no attribute {var!r}"
+            raise AttributeError(msg) from None
 
     def __rich__(self):
         """Rich repr of state."""
@@ -73,7 +65,7 @@ class StateContext:
 
     __slots__ = ("state", "_state_vector")
 
-    def __init__(self, state: Union[State, Dict[str, Any]]):
+    def __init__(self, state: State | dict[str, Any]):
         self.state = State(state)
         self._state_vector = deque([self.state])
 
@@ -102,7 +94,7 @@ class StateContext:
         return len(self._state_vector)
 
 
-class TraceScope(List[Tuple[Navigable, Dict[str, Any]]]):
+class TraceScope(list[tuple[Navigable, dict[str, Any]]]):
     """List of navigable objects that have been visited in the current scope."""
 
     def __rich__(self):
@@ -117,7 +109,7 @@ class TraceScope(List[Tuple[Navigable, Dict[str, Any]]]):
         )
 
 
-class FlowTrace(List[State]):
+class FlowTrace(list[State]):
     """Trace of the visited workflow tree."""
 
     def __rich__(self):
@@ -140,7 +132,7 @@ class FlowTrace(List[State]):
             padding=(0, 1),
         )
 
-    def iter_trace(self) -> Iterable[Tuple[TraceScope, State]]:
+    def iter_trace(self) -> Iterable[tuple[TraceScope, State]]:
         """Iterate over the trace."""
         for state in self:
             trace_scope = state[TRACE_STATE_KEY]
@@ -193,7 +185,7 @@ class WorkflowContext(StateContext):
         super().__init__(variables)
 
         self.logger = logger or logging.getLogger("pyapp_flow")
-        self._flow_trace: Optional[FlowTrace] = None
+        self._flow_trace: FlowTrace | None = None
         self._extra_indent: int = 0
 
     @property
@@ -208,7 +200,7 @@ class WorkflowContext(StateContext):
     # Tracing #################################################################
 
     @property
-    def flow_trace(self) -> Optional[FlowTrace]:
+    def flow_trace(self) -> FlowTrace | None:
         """Return the current flow trace."""
         return self._flow_trace
 
@@ -289,7 +281,7 @@ class DescribeContext(StateContext):
 
     __slots__ = ()
 
-    def __init__(self, *variables: str, **typed_variables: Type):
+    def __init__(self, *variables: str, **typed_variables: type):
         """Initialise state context for describing a workflow."""
         state = {var: (None, None) for var in variables}
         state.update(

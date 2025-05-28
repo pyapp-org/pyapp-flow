@@ -10,4 +10,5 @@ Reference
    nodes
    steps
    testing
+   builtin/index
    ext/index

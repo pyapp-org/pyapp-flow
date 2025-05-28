@@ -4,7 +4,8 @@ import importlib
 import enum
 from functools import cached_property
 from multiprocessing import Pool
-from typing import Optional, Callable, Iterable, Any, Dict, Tuple, Sequence, Union
+from collections.abc import Iterable, Sequence
+from typing import Callable, Any
 
 from pyapp_flow import Navigable, WorkflowContext, Branches
 from pyapp_flow.errors import WorkflowRuntimeError, FatalError
@@ -30,7 +31,8 @@ def _call_parallel_node(node_id, context_data, return_vars):
     try:
         node = import_node(node_id)
     except (AttributeError, ImportError) as ex:
-        raise FatalError(f"Unable to import parallel node: {ex}")
+        msg = f"Unable to import parallel node: {ex}"
+        raise FatalError(msg)
 
     # Generate context and call node
     context = WorkflowContext(**context_data)
@@ -51,7 +53,7 @@ class _ParallelNode:
     def _map_to_pool(
         self,
         node_id: str,
-        context_iter: Iterable[Dict[str, Any]],
+        context_iter: Iterable[dict[str, Any]],
         return_vars: Sequence[str],
     ) -> Sequence[Any]:
         """Map an iterable of context entries into a node.
@@ -112,10 +114,12 @@ class MapNode(Navigable, _ParallelNode):
         try:
             iterable = context.state[self.in_var]
         except KeyError:
-            raise WorkflowRuntimeError(f"Variable {self.in_var} not found in context")
+            msg = f"Variable {self.in_var} not found in context"
+            raise WorkflowRuntimeError(msg)
 
         if not isinstance(iterable, Iterable):
-            raise WorkflowRuntimeError(f"Variable {self.in_var} is not iterable")
+            msg = f"Variable {self.in_var} is not iterable"
+            raise WorkflowRuntimeError(msg)
 
         if self._node_id:
             result_vars = [name for name, _ in self._merge_vars]
@@ -138,7 +142,7 @@ class MapNode(Navigable, _ParallelNode):
         """Name of node."""
         return f"Map ({self.target_var}) in `{self.in_var}`"
 
-    def branches(self) -> Optional[Branches]:
+    def branches(self) -> Branches | None:
         """Branches to call on each iteration of the foreach block."""
         return {"loop": [self._node_id]}
 
@@ -147,7 +151,7 @@ class MapNode(Navigable, _ParallelNode):
         self._node_id = node
         return self
 
-    def merge_vars(self, *merge_vars: Union[str, Tuple[str, MergeMethod]]) -> "MapNode":
+    def merge_vars(self, *merge_vars: str | tuple[str, MergeMethod]) -> "MapNode":
         """Vars to merge back from parallel execution.
 
         These can optionally take a merge method to defined how the variables
