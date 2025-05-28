@@ -37,7 +37,8 @@ def list_flows(
     "ARGS",
     action=KeyValueAction,
     nargs="*",
-    help_text="Key/Value arguments added to flow context",
+    metavar="VARIABLE_NAME=VALUE",
+    help_text="Variable name/Value arguments added to flow context",
 )
 @argument(
     "-f",

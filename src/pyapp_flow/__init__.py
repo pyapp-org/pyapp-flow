@@ -1,7 +1,6 @@
 """Application Workflow"""
 
-from typing import Optional, Type
-
+import sys
 from typing_extensions import Self
 
 from . import errors as exceptions
@@ -21,6 +20,7 @@ from .nodes import (
     FeatureEnabled,
     ForEach,
     Group,
+    Nodes,
     If,
     LogMessage,
     Node,
@@ -36,20 +36,6 @@ from .nodes import (
 from .steps import (
     alias,
 )
-
-
-class Nodes(Group):
-    """A series of nodes to be executed on call."""
-
-    __slots__ = ()
-
-    def __call__(self, context: WorkflowContext):
-        with context:
-            self._execute(context)
-
-    @property
-    def name(self) -> str:
-        return f"⏬ {type(self).__name__}"
 
 
 class Workflow(Nodes):
@@ -137,7 +123,7 @@ class Workflow(Nodes):
         self._nodes.append(DefaultVar(**kwargs))
         return self
 
-    def require_vars(self, **kwargs: Optional[Type]) -> Self:
+    def require_vars(self, **kwargs: type | None) -> Self:
         """Require variables to be present in the context.
 
         If any type can be used, use ``typing.Any`` as the type.
@@ -148,3 +134,25 @@ class Workflow(Nodes):
         """
         self._required_vars = tuple(kwargs.items())
         return self
+
+
+_debugger_active = getattr(sys, "gettrace", lambda: None)() is not None
+
+
+def break_point(*, debugger_only: bool = False) -> Step:
+    """Place a breakpoint in a flow to allow for debugging or inspection of context.
+
+    :param debugger_only: Only trigger if the debugger is active.
+    """
+
+    @step(name="Breakpoint")
+    def _step(ctx: WorkflowContext):
+        if not _debugger_active:
+            if debugger_only:
+                skip_step("Debugger not active")
+            ctx.info("WorkflowContext is available in `ctx` variable")
+
+        breakpoint()
+
+    return _step
+

@@ -10,7 +10,7 @@ simplifying testing and re-use.
 Installation
 ============
 
-Python >=3.8 is required
+Python >=3.10 is required
 
 .. code-block:: shell
 

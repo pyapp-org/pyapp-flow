@@ -27,6 +27,11 @@ SetVar
 
 .. autoclass:: pyapp_flow.SetVar
 
+SetGlobalVar
+------------
+
+.. autoclass:: pyapp_flow.SetGlobalVar
+
 Append
 ------
 
