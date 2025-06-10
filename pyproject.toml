@@ -44,7 +44,7 @@ requires-poetry = '>=2.0,<3.0'
 [tool.poetry.group.test.dependencies]
 pytest = "^7.1"
 pytest-cov = "^4.0"
-Cython = "^0.29"
+Cython = "^3.1"
 sphinx = "*"
 
 [build-system]
