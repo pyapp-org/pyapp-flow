@@ -1,3 +1,3 @@
 rich ~=12.4
 pyapp ~=4.10
-typing-extensions ~=4.0
+typing-extensions ~=4.14
